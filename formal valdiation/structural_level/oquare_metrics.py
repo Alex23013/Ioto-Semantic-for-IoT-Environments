@@ -14,12 +14,10 @@ class Metricas:
     def __init__(self, file):
         self.g = Graph()
         self.getEntities(file)
-        self.ecrm = Namespace("http://github.com/Alex23013/slam-up/") #ontoSLAM
+        self.ecrm = Namespace("https://github.com/Alex23013/Ioto-Semantic-for-IoT-Environments/") #ontoSLAM
 #        self.ecrm = Namespace("http://www.semanticweb.org/ontologies/2013/7/") #fr2013
-#        self.ecrm = Namespace("http://www.ontologydesignpatterns.org/ont/dul/") #kn
-        self.g.bind("os", self.ecrm)
+        self.g.bind("ioto", self.ecrm)
 #        self.g.bind("fr", self.ecrm) #fr2013
-#        self.g.bind("kn", self.ecrm)  #kn
         self.g.bind("rdfs", RDFS)
         self.level_dic = {}
         self.leaves = []

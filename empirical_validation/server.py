@@ -13,16 +13,13 @@ xsd = Namespace('http://www.w3.org/2001/XMLSchema#')
 ioto = Namespace("https://github.com/Alex23013/Ioto-Semantic-for-IoT-Environments/blob/main/iot_ontologies/ioto-protege.ttl/")
 
 # Constants
-g = Graph()
-#sensors = []
-#observations = []
-
 measure_to_property = {
     'temperature': seas.temperature,
     'humidity': seas.humidity,
     'pressure': seas.pressure,
     # Add more mappings as needed
 }
+valid_formats = ['turtle', 'xml', 'n3', 'nt', 'json-ld']
 
 class Sensor:
     def __init__(self, name: str, measure: str):
@@ -41,25 +38,56 @@ class PythonEnvironment:
         self.observations = observations
         self.visitors = visitors
 
-    def sensor_exists(sensors, sensor_to_check):
+    def sensor_exists(self, sensors, sensor_to_check):
         for sensor in sensors:
             if sensor.name == sensor_to_check.name and sensor.measure == sensor_to_check.measure:
                 return True
         return False
+
     def get_sensors(self):
         return jsonify([sensor.to_dict() for sensor in self.sensors])
 
+    def add_sensor(self, req_name, req_measure):
+        new_sensor = Sensor(name=req_name, measure=req_measure)
+        if self.sensor_exists(self.sensors, new_sensor):
+            return 'Sensor already exists', 400
+        self.sensors.append(new_sensor)
+        return 'sensor added', 201
+
+class OntologyEnvironment:
+    def __init__(self, init_graph = Graph()):
+        self.g = init_graph
+
+    def get_serialized_graph(self, req_format='turtle'):
+        if req_format not in valid_formats:
+            return 'Invalid format', 400
+        return self.g.serialize(format=req_format)
+
+    def add_sensor(self,req_name, req_measure ):
+        new_sensor_uri = ioto[req_name]
+        self.g.add((new_sensor_uri, RDF.type, sosa.Sensor))
+        self.g.add((new_sensor_uri, sosa.hasName, Literal(req_name, datatype=XSD.string))) 
+        observed_property = measure_to_property.get(req_measure.lower())
+        if observed_property:
+            self.g.add((new_sensor_uri, sosa.observes, observed_property))
+        else:
+            return 'Invalid measure', 400
+        
+        return 'sensor added', 201
+        
 smart_environment = PythonEnvironment()
+ontology_environment = OntologyEnvironment()
 
 @app.route('/sensors')
 def list_sensors():
     method = request.args.get('method')
     if method == 'ontology':
-        return 'return SPARQL result'
+        req_format = request.args.get('format')
+        return ontology_environment.get_serialized_graph(req_format)
     elif method == 'web':
         return smart_environment.get_sensors()
     else:
-        return 'method not recognized'
+        return 'method not recognized', 400
 
 
 @app.route('/sensors', methods=['POST'])
@@ -68,22 +96,14 @@ def add_sensor():
     name = data.get('name')
     measure = data.get('measure')
     if not name or not measure:
-        return 'Invalid sensor data', 400
-    new_sensor = Sensor(name=name, measure=measure)
-    if sensor_exists(sensors, new_sensor):
-        return 'Sensor already exists', 400
-    sensors.append(new_sensor)
-    
-    new_sensor_uri = ioto[name]
-    g.add((new_sensor_uri, RDF.type, sosa.Sensor))
-    g.add((new_sensor_uri, sosa.hasName, Literal(new_sensor.name, datatype=XSD.string))) 
-    observed_property = measure_to_property.get(measure.lower())
-    if observed_property:
-        g.add((new_sensor_uri, sosa.observes, observed_property))
+        return 'Invalid sensor data', 422
+    method = data.get('method')
+    if method == 'ontology':
+        return ontology_environment.add_sensor(name, measure)
+    elif method == 'web':
+        return smart_environment.add_sensor(name, measure)
     else:
-        return 'Invalid measure', 400
-    
-    return 'sensor added', 201
+        return 'method not recognized', 400
 
 @app.route('/observations')
 def get_observations():
@@ -121,18 +141,9 @@ def welcome_message():
     return "Hello, from smart building!"
 
 
-@app.route('/turtle_ontology')
-def get_ontology_format_turtle():
-    format = request.args.get('format', 'turtle')
-    valid_formats = ['turtle', 'xml', 'n3', 'nt', 'json-ld']
-    if format not in valid_formats:
-        return 'Invalid format', 400
-    return g.serialize(format=format)
-
 # create a method that analyse the observations and get high level info
 # create a method that initiate the building instance (set ethic mode and info about data controllers)
 # we ca make form to fill in the data
-
 
 
 if __name__ == '__main__':

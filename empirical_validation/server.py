@@ -14,8 +14,8 @@ ioto = Namespace("https://github.com/Alex23013/Ioto-Semantic-for-IoT-Environment
 
 # Constants
 g = Graph()
-sensors = []
-observations = []
+#sensors = []
+#observations = []
 
 measure_to_property = {
     'temperature': seas.temperature,
@@ -35,15 +35,31 @@ class Sensor:
             'measure': self.measure
         }
 
-def sensor_exists(sensors, sensor_to_check):
-    for sensor in sensors:
-        if sensor.name == sensor_to_check.name and sensor.measure == sensor_to_check.measure:
-            return True
-    return False
+class PythonEnvironment:
+    def __init__(self, sensors = [], observations = [], visitors = []): # TODO: define sensors as a list of Sensors and same for properties
+        self.sensors =  sensors
+        self.observations = observations
+        self.visitors = visitors
+
+    def sensor_exists(sensors, sensor_to_check):
+        for sensor in sensors:
+            if sensor.name == sensor_to_check.name and sensor.measure == sensor_to_check.measure:
+                return True
+        return False
+    def get_sensors(self):
+        return jsonify([sensor.to_dict() for sensor in self.sensors])
+
+smart_environment = PythonEnvironment()
 
 @app.route('/sensors')
-def get_sensors():
-    return jsonify([sensor.to_dict() for sensor in sensors])
+def list_sensors():
+    method = request.args.get('method')
+    if method == 'ontology':
+        return 'return SPARQL result'
+    elif method == 'web':
+        return smart_environment.get_sensors()
+    else:
+        return 'method not recognized'
 
 
 @app.route('/sensors', methods=['POST'])

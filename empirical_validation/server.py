@@ -82,6 +82,7 @@ ontology_environment = OntologyEnvironment()
 def list_sensors():
     method = request.args.get('method')
     if method == 'ontology':
+        # TODO: make custom SPARQL query to get sensors this is getting all graph by default
         req_format = request.args.get('format')
         return ontology_environment.get_serialized_graph(req_format)
     elif method == 'web':

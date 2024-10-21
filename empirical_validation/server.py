@@ -7,10 +7,11 @@ app = Flask(__name__)
 
 smart_environment = PythonEnvironment()
 ontology_environment = OntologyEnvironment()
+DEFAULT_METHOD = 'web'
 
 @app.route('/sensors')
 def list_sensors():
-    method = request.args.get('method')
+    method = request.args.get('method', DEFAULT_METHOD)
     return dispatch_method(
         method,
         lambda: ontology_environment.get_serialized_graph(), #TODO: implement custom method
@@ -23,7 +24,7 @@ def add_sensor():
     error_response, status_code= validate_object_data(data, 'name', 'measure')
     if status_code != 200:
         return error_response
-    method = data.get('method')
+    method = data.get('method', DEFAULT_METHOD)
     return dispatch_method(
         method,
         lambda: ontology_environment.add_sensor(data),
@@ -32,7 +33,7 @@ def add_sensor():
 
 @app.route('/observations')
 def get_observations():
-    method = request.args.get('method')
+    method = request.args.get('method', DEFAULT_METHOD)
     sensor = request.args.get('sensor')
     return dispatch_method(
         method,
@@ -46,7 +47,7 @@ def add_observation():
     error_response, status_code= validate_object_data(data, 'sensor', 'value')
     if status_code != 200:
         return error_response
-    method = data.get('method')
+    method = data.get('method', DEFAULT_METHOD)
     return dispatch_method(
         method,
         lambda: ontology_environment.add_observation(data),
@@ -55,11 +56,42 @@ def add_observation():
 
 @app.route('/env_current_state', methods=['GET'])
 def list_last_observations():
-    method = request.args.get('method')
+    method = request.args.get('method', DEFAULT_METHOD)
     return dispatch_method(
         method,
         lambda: ontology_environment.get_serialized_graph(), #TODO: implement custom method
         lambda: smart_environment.get_last_observations()
+    )
+
+@app.route('/visitors', methods=['POST'])
+def add_visitor():
+    data = request.get_json()
+    error_response, status_code= validate_object_data(data, 'name', 'role')
+    if status_code != 200:
+        return error_response
+    method = data.get('method', DEFAULT_METHOD)
+    return dispatch_method(
+        method,
+        lambda: ontology_environment.add_visitor(data), #TODO: implement custom method
+        lambda: smart_environment.add_visitor(data)
+    )
+
+@app.route('/count_visitors', methods=['GET'])
+def count_visitors():
+    method = request.args.get('method', DEFAULT_METHOD)
+    return dispatch_method(
+        method,
+        lambda: ontology_environment.get_serialized_graph(), #TODO: implement custom method
+        lambda: smart_environment.count_visitors()
+    )
+
+@app.route('/list_visitors', methods=['GET'])
+def list_visitors():
+    method = request.args.get('method', DEFAULT_METHOD)
+    return dispatch_method(
+        method,
+        lambda: ontology_environment.get_serialized_graph(), #TODO: implement custom method
+        lambda: smart_environment.list_visitors()
     )
 
 

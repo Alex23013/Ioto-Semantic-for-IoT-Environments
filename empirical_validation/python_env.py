@@ -34,6 +34,16 @@ class Sensor:
             'name': self.name,
             'measure': self.measure
         }
+class Visitor:
+    def __init__(self, name: str, role: str):
+        self.name = name
+        self.role = role
+
+    def to_dict(self):
+        return {
+            'name': self.name,
+            'role': self.role
+        }
 
 class PythonEnvironment:
     def __init__(self, sensors = [], visitors = []):
@@ -93,3 +103,20 @@ class PythonEnvironment:
                 'last_observation': last_observation
             })
         return jsonify(last_observations)
+    
+    def add_visitor(self, data):
+        role = data.get('role')
+        name = data.get('name')
+        valid_types = ['visitante', 'admin', 'personal de restauracion'] #TODO: move to constants
+        if role not in valid_types:
+            return f"Tipo must be one of {valid_types}", 400
+        new_visitor = Visitor(name, role)
+        self.visitors.append(new_visitor)
+        return 'visitor added', 201
+
+    def count_visitors(self):
+        return jsonify(len(self.visitors))
+    
+    def list_visitors(self):
+        return jsonify([visitor.to_dict() for visitor in self.visitors])
+

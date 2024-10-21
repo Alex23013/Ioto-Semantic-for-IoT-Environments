@@ -56,4 +56,11 @@ class OntologyEnvironment:
         # TODO: add timestamp
         return 'observation received', 201
 
+    def add_visitor(self, data):
+        req_name = data.get('name')
+        req_role = data.get('role')
+        new_visitor_uri = ioto[req_name]
+        self.g.add((new_visitor_uri, RDF.type, ioto.Visitor)) #TODO: ver como modelar a las personas
+        self.g.add((new_visitor_uri, ioto.hasRole, Literal(req_role, datatype=XSD.string))) 
+        return 'visitor added', 201
 # create a method that analyse the observations and get high level info

@@ -11,10 +11,9 @@ ontology_environment = OntologyEnvironment()
 @app.route('/sensors')
 def list_sensors():
     method = request.args.get('method')
-    req_format = request.args.get('format')
     return dispatch_method(
         method,
-        lambda: ontology_environment.get_serialized_graph(req_format),
+        lambda: ontology_environment.get_serialized_graph(), #TODO: implement custom method
         lambda: smart_environment.get_sensors_names()
     )
 
@@ -35,10 +34,9 @@ def add_sensor():
 def get_observations():
     method = request.args.get('method')
     sensor = request.args.get('sensor')
-    req_format = request.args.get('format')
     return dispatch_method(
         method,
-        lambda: ontology_environment.get_serialized_graph(req_format),
+        lambda: ontology_environment.get_serialized_graph(), #TODO: implement custom method
         lambda: smart_environment.get_sensor_observation(sensor)
     )
 
@@ -54,6 +52,16 @@ def add_observation():
         lambda: ontology_environment.add_observation(data),
         lambda: smart_environment.add_observation(data)
     )
+
+@app.route('/env_current_state', methods=['GET'])
+def list_last_observations():
+    method = request.args.get('method')
+    return dispatch_method(
+        method,
+        lambda: ontology_environment.get_serialized_graph(), #TODO: implement custom method
+        lambda: smart_environment.get_last_observations()
+    )
+
 
 @app.route("/")
 def welcome_message():

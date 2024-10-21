@@ -23,6 +23,11 @@ class Sensor:
 
     def get_observations(self):
         return jsonify([obs.to_dict() for obs in self.observations])
+    
+    def get_last_observation(self):
+        if self.observations:
+            return self.observations[-1].to_dict()
+        return None
 
     def to_dict(self):
         return {
@@ -78,3 +83,13 @@ class PythonEnvironment:
             sensor.add_observation(Observation(value, formatted_date))
             return 'Observation received', 201
         return 'Sensor not found', 404
+    
+    def get_last_observations(self):
+        last_observations = []
+        for sensor in self.sensors:
+            last_observation = sensor.get_last_observation()
+            last_observations.append({
+                'sensor': sensor.name,
+                'last_observation': last_observation
+            })
+        return jsonify(last_observations)

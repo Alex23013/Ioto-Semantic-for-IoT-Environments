@@ -324,7 +324,7 @@ colpri:hasDataLifeCycleStep rdf:type owl:ObjectProperty ;
                           rdfs:range colpri:DataLifeCycleStep ;
                           rdfs:isDefinedBy colpri: .
 
-### TODO: not sure about this one
+
 ###  https://github/ioto/EnhacedOntology4IoT/hasEthicCategory
 ioto:hasEthicCategory rdf:type owl:ObjectProperty ;
                       rdfs:domain ioto:DataController ;
@@ -1390,6 +1390,7 @@ ioto:thingToTakeResponsabilityFor rdf:type owl:Class ;
                                                                       colpri:Disclosure
                                                                       ioto:PrivacyPolicyEvaluation
                                                                       colpri:Recommendation
+                                                                      ioto:Decision
                                                                     )
                                                       ] ;
                                   rdfs:subClassOf owl:Thing ;
@@ -2300,5 +2301,337 @@ ssn:Platform rdfs:isDefinedBy ssn: ;
                   ]
 ] .
 
+#################################################################
+#    Adsitional classes
+#################################################################
+ioto:IoTDevice a rdfs:Class ;
+    rdfs:label "IoT Device" ;
+    rdfs:comment "Represents a device in an IoT system that contains sensors." .
+
+# Define ioto:LegacyDevice as a subclass of IoTDevice
+ioto:LegacyDevice a rdfs:Class ;
+    rdfs:subClassOf ioto:IoTDevice ;
+    rdfs:label "Legacy IoT Device" ;
+    rdfs:comment "An IoT device that uses legacy data formats like XML or CSV." ;
+    rdfs:subClassOf [
+        a owl:Restriction ;
+        owl:onProperty ioto:hasSensor ;
+        owl:someValuesFrom [
+            a owl:Class ;
+            owl:intersectionOf (
+                sosa:Sensor
+                [ a owl:Restriction ;
+                  owl:onProperty ioto:usesDataFormat ;
+                  owl:hasValue ioto:XML
+                ]
+                [ a owl:Restriction ;
+                  owl:onProperty ioto:usesDataFormat ;
+                  owl:hasValue ioto:CSV
+                ]
+            )
+        ]
+    ] .
+
+# Define ioto:ModernDevice as a subclass of IoTDevice
+ioto:ModernDevice a rdfs:Class ;
+    rdfs:subClassOf ioto:IoTDevice ;
+    rdfs:label "Modern IoT Device" ;
+    rdfs:comment "An IoT device that uses modern data formats like JSON, RDF, or Turtle." ;
+    rdfs:subClassOf [
+        a owl:Restriction ;
+        owl:onProperty ioto:hasSensor ;
+        owl:someValuesFrom [
+            a owl:Class ;
+            owl:intersectionOf (
+                sosa:Sensor
+                [ a owl:Restriction ;
+                  owl:onProperty ioto:usesDataFormat ;
+                  owl:hasValue ioto:JSON
+                ]
+                [ a owl:Restriction ;
+                  owl:onProperty ioto:usesDataFormat ;
+                  owl:hasValue ioto:RDF
+                ]
+                [ a owl:Restriction ;
+                  owl:onProperty ioto:usesDataFormat ;
+                  owl:hasValue ioto:Turtle
+                ]
+            )
+        ]
+    ] .
+    
+# Define the DataFormat class
+ioto:DataFormat a rdfs:Class ;
+    rdfs:label "Data Format" ;
+    rdfs:comment "Represents the data format used for communication and interoperability in IoT systems." .
+
+# Define the object property hasSensor (IoTDevice → Sensor) #Check if system already don't have Sensor or which class has relationship with Sensor
+ioto:hasSensor a owl:ObjectProperty ;
+    rdfs:domain ioto:IoTDevice ;
+    rdfs:range sosa:Sensor ;
+    rdfs:label "has Sensor" ;
+    rdfs:comment "Links an IoT device to its sensors." .
+
+# Define the object property usesDataFormat (Sensor → DataFormat)
+ioto:usesDataFormat a owl:ObjectProperty ;
+    rdfs:domain sosa:Sensor ;
+    rdfs:range ioto:DataFormat ;
+    rdfs:label "uses Data Format" ;
+    rdfs:comment "Defines the data format used by a sensor for interoperability." .
+
+# Define some common data formats
+ioto:JSON a ioto:DataFormat ;
+    rdfs:label "JSON" ;
+    rdfs:comment "JavaScript Object Notation, a widely used data format for IoT communication." .
+
+ioto:XML a ioto:DataFormat ;
+    rdfs:label "XML" ;
+    rdfs:comment "Extensible Markup Language, another standard data format for IoT." .
+
+ioto:RDF a ioto:DataFormat ;
+    rdfs:label "RDF" ;
+    rdfs:comment "Resource Description Framework, a semantic web format for linked IoT data." .
+
+# Define IoTStandard
+ioto:IoTStandard a rdfs:Class ;
+    rdfs:label "IoT Standard" ;
+    rdfs:comment "Represents various IoT standards that can be dynamically introduced." .
+
+# Define CommunicationProtocol
+ioto:CommunicationProtocol a rdfs:Class ;
+    rdfs:label "Communication Protocol" ;
+    rdfs:comment "Represents communication protocols used by IoT devices." .
+
+# Define hasStandard property
+ioto:hasStandard a owl:ObjectProperty ;
+    rdfs:domain ioto:IoTDevice ;
+    rdfs:range ioto:IoTStandard ;
+    rdfs:label "has Standard" ;
+    rdfs:comment "Links an IoT device to a specific IoT standard it follows." .
+
+# Define usesProtocol property
+ioto:usesProtocol a owl:ObjectProperty ;
+    rdfs:domain ioto:IoTDevice ;
+    rdfs:range ioto:CommunicationProtocol ;
+    rdfs:label "uses Protocol" ;
+    rdfs:comment "Links an IoT device to a specific communication protocol it uses." .
+    
+### Definition of generatesData
+ioto:generatesData rdf:type owl:ObjectProperty ;
+                   rdfs:domain ioto:IoTDevice ;
+                   rdfs:range ioto:DataDomain ;
+                   rdfs:label "generates data" ;
+                   rdfs:comment "Represents the relationship where an IoT device generates a specific type of data." ;
+                   rdfs:isDefinedBy ioto: .
+
+### Definition of triggersAccessControl
+ioto:triggersAccessControl rdf:type owl:ObjectProperty ;
+                           rdfs:domain ioto:IoTDevice ;
+                           rdfs:range ds4iot:AccessControl ;
+                           rdfs:label "triggers access control" ;
+                           rdfs:comment "Indicates that an IoT device's data generation triggers a specific access control mechanism." ;
+                           rdfs:isDefinedBy ioto: .
+                           
+ioto:hasTimeConstraint rdf:type owl:DatatypeProperty ;
+                       rdfs:domain ioto:IoTDevice ;
+                       rdfs:range xsd:string ;
+                       rdfs:comment "Specifies the operational time window for an IoT device, formatted as HH:MM-HH:MM." ;
+                       rdfs:label "Time Constraint" .
+
+ioto:hasDataRetentionPeriod rdf:type owl:DatatypeProperty ;
+                            rdfs:domain ioto:IoTDevice ;
+                            rdfs:range xsd:string ;
+                            rdfs:comment "Defines the duration (e.g., '7 days', '30 days') that data generated by the IoT device is retained before deletion." ;
+                            rdfs:label "Data Retention Period" .
+                            
+### Define Encryption Method Class
+ioto:EncryptionMethod rdf:type owl:Class ;
+                        rdfs:subClassOf owl:Thing ;
+                        rdfs:label "Encryption Method" ;
+                        rdfs:comment "Defines different encryption methods used for securing data transmission and storage." .
+
+### Define Encryption Algorithm Class
+ioto:EncryptionAlgorithm rdf:type owl:Class ;
+                           rdfs:subClassOf owl:Thing ;
+                           rdfs:label "Encryption Algorithm" ;
+                           rdfs:comment "Specifies the encryption algorithm applied to data." .
+
+### Define Security Policy Class
+ioto:SecurityPolicy rdf:type owl:Class ;
+                      rdfs:subClassOf owl:Thing ;
+                      rdfs:label "Security Policy" ;
+                      rdfs:comment "Represents policies governing encryption and data security." .
+  
+### Define hasEncryptionMethod Relationship
+ioto:hasEncryptionMethod rdf:type owl:ObjectProperty ;
+                           rdfs:domain ds4iot:EncryptedData ;
+                           rdfs:range ioto:EncryptionMethod ;
+                           rdfs:label "has encryption method" ;
+                           rdfs:comment "Links encrypted data to its encryption method." .
+
+### Define usesEncryptionAlgorithm Relationship
+ioto:usesEncryptionAlgorithm rdf:type owl:ObjectProperty ;
+                               rdfs:domain ioto:EncryptionMethod ;
+                               rdfs:range ioto:EncryptionAlgorithm ;
+                               rdfs:label "uses encryption algorithm" ;
+                               rdfs:comment "Defines the algorithm used for a specific encryption method." .
+
+### Define followsSecurityPolicy Relationship
+ioto:followsSecurityPolicy rdf:type owl:ObjectProperty ;
+                             rdfs:domain ds4iot:EncryptedData ;
+                             rdfs:range ioto:SecurityPolicy ;
+                             rdfs:label "follows security policy" ;
+                             rdfs:comment "Indicates which security policies are applied to encrypted data." .
+                    
+###Anomaly detection
+### Define Anomaly Class
+ioto:Anomaly rdf:type owl:Class ;
+             rdfs:subClassOf ioto:SecurityEvent ;
+             rdfs:label "Anomaly" ;
+             rdfs:comment "An event that indicates deviation from expected behavior in an IoT system." ;
+             rdfs:isDefinedBy ioto: .
+
+### Define Threat Response Class
+ioto:ThreatResponse rdf:type owl:Class ;
+                    rdfs:label "Threat Response" ;
+                    rdfs:comment "Represents actions taken to mitigate detected anomalies." ;
+                    rdfs:isDefinedBy ioto: .
+
+### Define Security Event Class
+ioto:SecurityEvent rdf:type owl:Class ;
+                   rdfs:label "Security Event" ;
+                   rdfs:comment "Represents a logged security-related occurrence in the IoT system." ;
+                   rdfs:isDefinedBy ioto: .
+
+#### monitors (IoTDevice → SecurityEvent)
+ioto:SecurityMonitor rdf:type owl:Class ;
+                     rdfs:subClassOf owl:Thing ;
+                     rdfs:label "Security Monitor" ;
+                     rdfs:comment "An entity that monitors IoT devices and detects anomalies." .
+
+### Define Relationships for SecurityMonitor
+ioto:monitors rdf:type owl:ObjectProperty ;
+              rdfs:domain ioto:SecurityMonitor ;
+              rdfs:range ioto:IoTDevice ;
+              rdfs:label "monitors" ;
+              rdfs:comment "Indicates that a security monitor observes a specific IoT device." .
+
+ioto:detectsAnomaly rdf:type owl:ObjectProperty ;
+                    rdfs:domain ioto:SecurityMonitor ;
+                    rdfs:range ioto:Anomaly ;
+                    rdfs:label "detects anomaly" ;
+                    rdfs:comment "Indicates that a security monitor has detected an anomaly." .
+                    
+
+
+
+#### triggersAlert (Anomaly → SecurityEvent)
+ioto:triggersAlert rdf:type owl:ObjectProperty ;
+                   rdfs:domain ioto:Anomaly ;
+                   rdfs:range ioto:SecurityEvent ;
+                   rdfs:label "triggers alert" ;
+                   rdfs:comment "Indicates that an anomaly triggers a security event alert." ;
+                   rdfs:isDefinedBy ioto: .
+
+#### requiresResponse (Anomaly → ThreatResponse)
+ioto:requiresResponse rdf:type owl:ObjectProperty ;
+                      rdfs:domain ioto:Anomaly ;
+                      rdfs:range ioto:ThreatResponse ;
+                      rdfs:label "requires response" ;
+                      rdfs:comment "Links an anomaly to the required threat response." ;
+                      rdfs:isDefinedBy ioto: .
+
+ioto:handlesIncident rdf:type owl:ObjectProperty ;
+                     rdfs:domain ioto:SecurityCommunityMember ;
+                     rdfs:range ioto:ThreatResponse ;
+                     rdfs:label "handles incident" ;
+                     rdfs:comment "Represents the relationship where a security member handles a threat response." ;
+                     rdfs:isDefinedBy ioto: .
+
+ioto:NormalBehavior rdf:type owl:Class ;
+                    rdfs:label "Normal Behavior" ;
+                    rdfs:comment "Represents normal operational behavior of IoT devices." ;
+                    rdfs:isDefinedBy ioto: .
+
+ioto:AbnormalBehavior rdf:type owl:Class ;
+                      rdfs:label "Abnormal Behavior" ;
+                      rdfs:comment "Represents unexpected or potentially dangerous behavior of IoT devices." ;
+                      rdfs:isDefinedBy ioto: .
+
+### Define hasBehavior Relationship
+ioto:hasBehavior rdf:type owl:ObjectProperty ;
+                 rdfs:domain ioto:IoTDevice ;
+                 rdfs:range ioto:NormalBehavior , ioto:AbnormalBehavior ;
+                 rdfs:label "has behavior" ;
+                 rdfs:comment "Indicates whether an IoT device follows normal or abnormal behavior." ;
+                 rdfs:isDefinedBy ioto: .
+                 
+### Define Threshold Property for IoT Sensors
+ioto:hasThreshold rdf:type owl:DatatypeProperty ;
+                  rdfs:domain ioto:IoTDevice ;
+                  rdfs:range xsd:float ;
+                  rdfs:label "has threshold" ;
+                  rdfs:comment "Defines the expected operational threshold for a device." ;
+                  rdfs:isDefinedBy ioto: .
+
+### Define Current Value Property for IoT Sensors
+ioto:hasCurrentValue rdf:type owl:DatatypeProperty ;
+                     rdfs:domain ioto:IoTDevice ;
+                     rdfs:range xsd:float ;
+                     rdfs:label "has current value" ;
+                     rdfs:comment "Represents the current measured value of a sensor or device." ;
+                     rdfs:isDefinedBy ioto: .
+                     
+### Define the Relationship Between Anomalies and Abnormal Behavior
+ioto:representsAbnormalBehavior rdf:type owl:ObjectProperty ;
+                                rdfs:domain ioto:Anomaly ;
+                                rdfs:range ioto:AbnormalBehavior ;
+                                rdfs:label "represents abnormal behavior" ;
+                                rdfs:comment "Links an anomaly to a corresponding abnormal behavior pattern." ;
+                                rdfs:isDefinedBy ioto: .
+                                
+################# module 4
+ioto:ControlAction rdf:type owl:Class ;
+                   rdfs:label "Control Action" ;
+                   rdfs:comment "Represents an action taken to adjust environmental conditions in an IoT system." ;
+                   rdfs:isDefinedBy ioto: .
+
+### Define Object Property for Adjustments
+ioto:adjusts rdf:type owl:ObjectProperty ;
+             rdfs:domain ioto:ControlAction ;
+             rdfs:range seas:EnergyForm ;
+             rdfs:label "adjusts" ;
+             rdfs:comment "Links a control action to the energy form it modifies." ;
+             rdfs:isDefinedBy ioto: .
+             
+### Sustainability Metric Class
+ioto:SustainabilityMetric rdf:type owl:Class ;
+                          rdfs:label "Sustainability Metric" ;
+                          rdfs:comment "Represents a metric used to evaluate sustainability-related factors, such as energy efficiency, air quality, or CO2 emissions." ;
+                          rdfs:isDefinedBy ioto: .
+
+### Property: relatesToMetric (Links Evaluations to Sustainability Metrics)
+ioto:relatesToMetric rdf:type owl:ObjectProperty ;
+                     rdfs:domain seas:Evaluation ;
+                     rdfs:range ioto:SustainabilityMetric ;
+                     rdfs:label "relates to metric" ;
+                     rdfs:comment "Links an environmental evaluation to a sustainability metric it assesses." ;
+                     rdfs:isDefinedBy ioto: .
+                     
+#########module 5
+### Define Fairness as an EthicCategory
+ioto:Fairness rdf:type owl:Class ;
+              rdfs:subClassOf ioto:EthicCategory ;
+              rdfs:label "Fairness" ;
+              rdfs:comment "An ethical principle ensuring that IoT decision-making is unbiased, equitable, and transparent." ;
+              skos:definition "Ensures non-discriminatory and justifiable decision-making in IoT applications." ;
+              rdfs:isDefinedBy ioto: .
+
+ioto:Decision rdf:type owl:Class ;
+              rdfs:subClassOf ioto:thingToTakeResponsabilityFor ;
+              rdfs:label "Decision" ;
+              rdfs:comment "Represents an IoT-related decision for which a Data Controller is responsible." ;
+              rdfs:isDefinedBy ioto: .
+              
 
 ###  Generated by the OWL API (version 4.5.26.2023-07-17T20:34:13Z) https://github.com/owlcs/owlapi

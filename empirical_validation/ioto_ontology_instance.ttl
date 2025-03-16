@@ -1,0 +1,29 @@
+@prefix ioto: <https://github.com/Alex23013/Ioto-Semantic-for-IoT-Environments/blob/main/iot_ontologies/ioto-protege.ttl/> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix sosa1: <https://www.w3.org/ns/sosa/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+ioto:SmartThermostat a ioto:IoTDevice,
+        ioto:ModernDevice ;
+    rdfs:label "SmartThermostat"^^xsd:string ;
+    ioto:hasSensor ioto:humiditySensor01,
+        ioto:tempSensor01 .
+
+ioto:humidity a sosa1:ObservableProperty ;
+    rdfs:label "humidity"^^xsd:string .
+
+ioto:humiditySensor01 a sosa1:Sensor ;
+    rdfs:label "humiditySensor01"^^xsd:string ;
+    ioto:usesDataFormat ioto:JSON ;
+    sosa1:observes ioto:humidity .
+
+ioto:tempSensor01 a sosa1:Sensor ;
+    rdfs:label "tempSensor01"^^xsd:string ;
+    ioto:usesDataFormat ioto:JSON ;
+    sosa1:observes ioto:temperature .
+
+ioto:temperature a sosa1:ObservableProperty ;
+    rdfs:label "temperature"^^xsd:string .
+
+ioto:JSON a ioto:DataFormat .
+

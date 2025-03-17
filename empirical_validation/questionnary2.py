@@ -55,24 +55,35 @@ class QuestionnaryModule2:
     def mod2_qb(self):
         start_time = time.time()
         query = prepareQuery("""
-            SELECT DISTINCT ?dataInstance ?dataType
+            SELECT DISTINCT ?dataInstance ?dataType (COALESCE(?encryptionStatus, "Not Encrypted") AS ?finalStatus)
             WHERE {
                 ?dataInstance a ?subType .
                 ?subType rdfs:subClassOf* ?dataType .
+
+                # Check if data is encrypted
+                OPTIONAL {
+                    ?dataInstance ioto:mustBeTreatedAs ds4iot:EncryptedData .
+                    BIND("Encrypted" AS ?encryptionStatus)
+                }
+
                 FILTER (?dataType IN (colpri:SensitivePersonalData, colpri:NonSensitivePersonalData))
             }
-        """, initNs={"colpri": colpri})
+        """, initNs={"colpri": colpri, "ioto": ioto, "ds4iot": ds4iot, "rdfs": RDFS})
+        
         results = []
         for row in self.g.query(query):
             results.append({
                 "data_instance": str(row.dataInstance),
-                "data_type": str(row.dataType)
+                "data_type": str(row.dataType),
+                "encryption_status": str(row.finalStatus)  # ✅ Use `finalStatus` instead of `encryptionStatus`
             })
+
         end_time = time.time()
         execution_time = end_time - start_time
-        if self.result_mode=='time':
+        if self.result_mode == 'time':
             return f"{execution_time:.4f} seconds"
         return results
+
     
     def mod2_qc(self):
         start_time = time.time()

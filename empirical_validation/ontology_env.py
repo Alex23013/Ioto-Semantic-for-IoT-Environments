@@ -37,6 +37,7 @@ class OntologyEnvironment:
         self.g.bind("ds4iot", ds4iot)
         # module2
         self.create_data_controller("MuseumAdmin", "VisitorDataProcessing")
+        self.insert_identity_data_concept()
         self.museum_admin = ioto.MuseumAdmin
         self.default_encryption_algorithm = ioto.AES256  # Example encryption algorithm
         self.default_security_policy = ioto.GeneralDataProtectionRegulation  # Example policy
@@ -192,6 +193,28 @@ class OntologyEnvironment:
         self.g.add((controller_uri, ioto.definesPurpose, purpose_uri))
 
         return f"DataController '{controller_name}' created with purpose '{purpose}'."
+    
+    def insert_identity_data_concept(self):
+        """
+        Inserts the concept of IdentityData as a subclass of SensitivePersonalData.
+        This ensures it follows the restriction of being treated as EncryptedData.
+        """
+        self.g.add((colpri.IdentityData, RDF.type, OWL.Class))
+        self.g.add((colpri.IdentityData, RDFS.subClassOf, colpri.SensitivePersonalData))
+
+        # Define Restriction: IdentityData must be treated as EncryptedData
+        restriction_blank_node = BNode()  # Create a blank node for the restriction
+        self.g.add((restriction_blank_node, RDF.type, OWL.Restriction))
+        self.g.add((restriction_blank_node, OWL.onProperty, ioto.mustBeTreatedAs))
+        self.g.add((restriction_blank_node, OWL.someValuesFrom, ds4iot.EncryptedData))
+
+        # Attach restriction to IdentityData
+        self.g.add((colpri.IdentityData, RDFS.subClassOf, restriction_blank_node))
+
+        # Define the ontology reference
+        self.g.add((colpri.IdentityData, RDFS.isDefinedBy, colpri._URI))
+
+        return "IdentityData concept added to ontology."
 
     def encrypt_data(self, plaintext: str) -> str:
         """Encrypts the given plaintext using AES-256."""
@@ -206,6 +229,28 @@ class OntologyEnvironment:
             self.add_personal(data) 
         return 'visitor added', 201
     
+    def insert_personal_data(self, prop, visitor_id, value, is_sensitive):
+        """
+        Inserts personal data as either SensitivePersonalData (encrypted) or NonSensitivePersonalData.
+        
+        :param prop: Property name (e.g., "name", "lastname").
+        :param visitor_id: Unique visitor identifier.
+        :param value: The actual data to store.
+        :param is_sensitive: Boolean indicating if data should be encrypted.
+        """
+        data_uri = ioto[f"{prop.capitalize()}_{visitor_id}"]
+        
+        if is_sensitive:
+            encrypted_value = self.encrypt_data(value)  # Encrypt the data
+            self.g.add((data_uri, RDF.type, colpri.IdentityData))
+            self.g.add((data_uri, ioto.encryptedValue, Literal(encrypted_value, datatype=XSD.string)))  # Store encrypted
+            self.g.add((data_uri, ioto.mustBeTreatedAs, ds4iot.EncryptedData))  # Link to EncryptedData
+        else:
+            self.g.add((data_uri, RDF.type, colpri.NonSensitivePersonalData))  # Mark as NonSensitive
+        
+        # Add label
+        self.g.add((data_uri, RDFS.label, Literal(f"{prop.capitalize()} of visitor {visitor_id}", datatype=XSD.string)))
+    
     def add_visitor(self, visitor_data):
         visitor_id = visitor_data.get("id")
         consent_given = visitor_data.get("consent")
@@ -219,19 +264,19 @@ class OntologyEnvironment:
 
         # Link MuseumAdmin to the Consent
         self.g.add((self.museum_admin, ioto.makesConsent, consent_uri))
+        
+        # Insert personal data (Sensitive or Non-Sensitive)
+        personal_data_properties = {
+            "gender": False,   # Non-sensitive (NonSensitivePersonalData)
+            "name": True,     # Always sensitive (IdentityData)
+            "lastname": True  # Always sensitive (IdentityData)
+        }
 
-        # Encrypt and store IdentityData
-        identity_data_properties = ["gender", "name", "lastname"]
-        for prop in identity_data_properties:
+        for prop, is_sensitive in personal_data_properties.items():
             value = visitor_data.get(prop)
             if value:
-                encrypted_value = self.encrypt_data(value)
-                data_uri = ioto[f"{prop.capitalize()}_{visitor_id}"]
-                self.g.add((data_uri, RDF.type, colpri.IdentityData))
-                self.g.add((data_uri, RDFS.label, Literal(f"{prop.capitalize()} of visitor {visitor_id}", datatype=XSD.string)))
-                self.g.add((data_uri, ioto.mustBeTreatedAs, ds4iot.EncryptedData))
-                self.g.add((data_uri, ioto.encryptedValue, Literal(encrypted_value, datatype=XSD.string)))  # Store encrypted
-
+                self.insert_personal_data(prop, visitor_id, value, is_sensitive)
+        
         # Define encryption method and security policy
         encryption_method_uri = ioto[f"EncryptionMethod_{visitor_id}"]
         self.g.add((encryption_method_uri, RDF.type, ioto.EncryptionMethod))

@@ -34,9 +34,9 @@ def mod1_questions():
 @app.route('/questions/2')
 def mod2_questions():
     queries = [
-                questionnary2.cat1_qa,
-                questionnary2.cat1_qb, 
-                questionnary2.cat1_qc
+                questionnary2.mod2_qa,
+                questionnary2.mod2_qb, 
+                #questionnary2.mod2_qc
             ]
 
     results = {

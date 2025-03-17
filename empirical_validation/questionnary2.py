@@ -5,6 +5,8 @@ ssn = Namespace("http://www.w3.org/ns/ssn/")
 seas = Namespace('https://w3id.org/seas/')
 xsd = Namespace('http://www.w3.org/2001/XMLSchema#')
 ioto = Namespace("https://github.com/Alex23013/Ioto-Semantic-for-IoT-Environments/blob/main/iot_ontologies/ioto-protege.ttl/")
+colpri = Namespace("https://github/ioto/EnhacedOntology4IoT/colpri#")
+ds4iot = Namespace("https://github/ioto/EnhacedOntology4IoT/ds4iot#")
 
 from rdflib.plugins.sparql import prepareQuery
 import time
@@ -16,29 +18,33 @@ class QuestionnaryModule2:
         self.g = Graph()
         self.g.parse(file_path, format="turtle")
         self.g.bind("sosa", sosa)
-        self.g.bind("ssn", ssn)
+        self.g.bind("colpri", colpri)
         self.g.bind("ioto", ioto)
         self.result_mode = result_mode
         self.module_name = "Questionnary Module 2: Privacy Policy"
 
-    def cat1_qa(self):
+    def mod2_qa(self):
         start_time = time.time()
         query = prepareQuery("""
-            SELECT DISTINCT ?device ?sensor ?dataFormat
+            SELECT DISTINCT ?user ?consentType ?consentLabel
             WHERE {
-            ?device a ioto:IoTDevice .
-            ?device ioto:hasSensor ?sensor .
-            ?sensor a sosa:Sensor .
-            ?sensor ioto:usesDataFormat ?dataFormat .
+                ?user a ioto:DataController ;  
+                    ioto:makesConsent ?consent .      
+
+                ?consent a ?consentType ;
+                        rdfs:label ?consentLabel .  
+                        
+                # Ensure the consent type is specifically GivenConsent or UngivenConsent
+                FILTER (?consentType IN (colpri:GivenConsent, colpri:UngivenConsent))
             }
-        """, initNs={"sosa": sosa, "ioto": ioto})
+        """, initNs={"ioto": ioto, "colpri": colpri})
 
         results = []
         for row in self.g.query(query):
             results.append({
-                "device": str(row.device),
-                "sensor": str(row.sensor),
-                "data_format": str(row.dataFormat)
+                "user": str(row.user),
+                "consent_type": str(row.consentType),
+                "consent_label": str(row.consentLabel)
             })
         end_time = time.time()
         execution_time = end_time - start_time
@@ -46,28 +52,21 @@ class QuestionnaryModule2:
             return f"{execution_time:.4f} seconds"
         return results
     
-    def cat1_qb(self):
+    def mod2_qb(self):
         start_time = time.time()
         query = prepareQuery("""
-            SELECT ?device ?sensor ?dataFormat ?deviceType
+            SELECT DISTINCT ?dataInstance ?dataType
             WHERE {
-                ?device a ioto:IoTDevice ;
-                        ioto:hasSensor ?sensor .
-
-                ?sensor a sosa:Sensor ;
-                        ioto:usesDataFormat ?dataFormat .
-
-                OPTIONAL { ?device a ioto:ModernDevice . BIND("ModernDevice" AS ?deviceType) }
-                OPTIONAL { ?device a ioto:LegacyDevice . BIND("LegacyDevice" AS ?deviceType) }
+                ?dataInstance a ?subType .
+                ?subType rdfs:subClassOf* ?dataType .
+                FILTER (?dataType IN (colpri:SensitivePersonalData, colpri:NonSensitivePersonalData))
             }
-        """, initNs={"sosa": sosa, "ioto": ioto})
+        """, initNs={"colpri": colpri})
         results = []
         for row in self.g.query(query):
             results.append({
-                "device": str(row.device),
-                "sensor": str(row.sensor),
-                "data_format": str(row.dataFormat),
-                "device_type": str(row.deviceType)
+                "data_instance": str(row.dataInstance),
+                "data_type": str(row.dataType)
             })
         end_time = time.time()
         execution_time = end_time - start_time
@@ -75,22 +74,14 @@ class QuestionnaryModule2:
             return f"{execution_time:.4f} seconds"
         return results
     
-    def cat1_qc(self):
+    def mod2_qc(self):
         start_time = time.time()
         query = prepareQuery("""
-            SELECT DISTINCT ?device ?standard ?protocol
-            WHERE {
-            ?device a ioto:IoTDevice .
-            OPTIONAL { ?device ioto:hasStandard ?standard . }
-            OPTIONAL { ?device ioto:usesProtocol ?protocol .}
-            }
-        """, initNs={"sosa": sosa, "ioto": ioto})
+            
+        """, initNs={"colpri": colpri})
         results = []
         for row in self.g.query(query):
-            results.append({
-                "device": str(row.device),
-                "standard": str(row.standard) if row.standard else None,
-                "protocol": str(row.protocol) if row.protocol else None
+            results.append({              
             })
         end_time = time.time()
         execution_time = end_time - start_time

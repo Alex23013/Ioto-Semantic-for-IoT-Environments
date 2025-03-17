@@ -1,14 +1,33 @@
 from flask import Flask, request
 from ontology_env import OntologyEnvironment
 from python_env import PythonEnvironment
+from questionnary1 import QuestionnaryModule1
 from utils import dispatch_method, validate_object_data
 
 app = Flask(__name__)
 
+DEFAULT_METHOD = 'ontology'
+DEBUG_MODE = False
+RESULT_MODE =  'content' # 'time' or 'content'
+
 smart_environment = PythonEnvironment()
 ontology_environment = OntologyEnvironment()
-DEFAULT_METHOD = 'ontology'
-DEBUG_MODE = True
+questionnary1 = QuestionnaryModule1(RESULT_MODE)
+
+@app.route('/questions')
+def list_questions():
+    queries = [
+                questionnary1.cat1_qa,
+                questionnary1.cat1_qb, 
+                questionnary1.cat1_qc
+            ]
+
+    results = {
+        questionnary1.module_name: {
+            f"cat1_q{chr(97 + i)}": query() for i, query in enumerate(queries)
+        }
+    }
+    return results, 200
 
 @app.route('/sensors')
 def list_sensors():
@@ -33,7 +52,7 @@ def add_sensor():
     responses = []
     
     for sensor_data in sensors:
-        error_response, status_code = validate_object_data(sensor_data, 'sensor_name', 'measure', 'data_format', 'device_name', 'device_type')
+        error_response, status_code = validate_object_data(sensor_data, 'sensor_name', 'measure', 'data_format', 'device_name', 'device_type', 'room')
         
         if status_code != 200:
             responses.append({"sensor": sensor_data.get("sensor_name", "unknown"), "error": error_response})

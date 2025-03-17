@@ -35,18 +35,19 @@ class OntologyEnvironment:
         serialized_graph = self.g.serialize(format=req_format)
 
         # Save as a Turtle file
-        if req_format == 'turtle':  # Only save when the format is Turtle
+        if req_format == 'turtle': 
             with open("ioto_ontology_instance.ttl", "w", encoding="utf-8") as f:
                 f.write(serialized_graph)
         return serialized_graph
 
     def get_sensors(self):
         query = prepareQuery("""
-            SELECT ?device ?sensor ?format ?property WHERE {
+            SELECT ?device ?sensor ?format ?property ?room WHERE {
                 ?device a ioto:IoTDevice .
                 ?device ioto:hasSensor ?sensor .
                 ?sensor sosa:observes ?property .
                 ?sensor ioto:usesDataFormat ?format .
+                OPTIONAL { ?device ioto:locatedInRoom ?room }
             }
         """, initNs={"sosa": sosa, "ioto": ioto})
 
@@ -56,7 +57,8 @@ class OntologyEnvironment:
                 "device": str(row.device),
                 "sensor": str(row.sensor),
                 "observes": str(row.property),
-                "data_format": str(row.format)
+                "data_format": str(row.format),
+                "room": str(row.room) if row.room else None  # Handle optional room
             })
         return results
 
@@ -71,34 +73,21 @@ class OntologyEnvironment:
 
         result = self.g.query(query, initBindings={"sensor_name": Literal(sensor_name, datatype=XSD.string)})
         return bool(result.askAnswer)
-    '''
-    def add_sensor(self, data):
-        req_name = data.get('name')
-        req_measure = data.get('measure')
-        new_sensor_uri = ioto[req_name]
-        self.g.add((new_sensor_uri, RDF.type, sosa.Sensor))
-        self.g.add((new_sensor_uri, sosa.hasName, Literal(req_name, datatype=XSD.string))) 
-        observed_property = measure_to_property.get(req_measure.lower())
-        if observed_property:
-            self.g.add((new_sensor_uri, sosa.observes, observed_property))
-        else:
-            return 'Invalid measure', 400
-        
-        return 'sensor added', 201'
-    '''
-
-
     
     def add_sensor(self, data):
         # Extract parameters
         device_name = data.get('device_name')
         device_type = data.get('device_type')  # LegacyDevice or ModernDevice
         sensor_name = data.get('sensor_name')
+        room_name = data.get('room') 
+        protocol = data.get('protocol')
+        iot_standard = data.get('iot_standard')
+
         if self.is_created_sensor_name(sensor_name):
             return 'Sensor already exists', 400
         
-        measure = data.get('measure')  # e.g., "Temperature"
-        data_format = data.get('data_format')  # e.g., "JSON"
+        measure = data.get('measure')
+        data_format = data.get('data_format')
 
         # Create IoTDevice
         device_uri = ioto[device_name]
@@ -133,7 +122,28 @@ class OntologyEnvironment:
         # Link IoTDevice to Sensor
         self.g.add((device_uri, ioto.hasSensor, sensor_uri))
 
-        return "IoT Device, Sensor, and ObservableProperty added", 201
+        # Create and Link Room (Exhibition)
+        if room_name:
+            room_uri = ioto[room_name]
+            self.g.add((room_uri, RDF.type, ioto.Room))
+            self.g.add((room_uri, RDFS.label, Literal(room_name, datatype=XSD.string)))
+            self.g.add((device_uri, ioto.locatedInRoom, room_uri))  # Device is in a Room
+
+        # Link IoTDevice to Communication Protocol
+        if protocol:
+            protocol_uri = ioto[protocol]
+            self.g.add((protocol_uri, RDF.type, ioto.CommunicationProtocol))
+            self.g.add((protocol_uri, RDFS.label, Literal(protocol, datatype=XSD.string)))
+            self.g.add((device_uri, ioto.usesProtocol, protocol_uri))
+
+        # Link IoTDevice to IoT Standard
+        if iot_standard:
+            standard_uri = ioto[iot_standard]
+            self.g.add((standard_uri, RDF.type, ioto.IoTStandard))
+            self.g.add((standard_uri, RDFS.label, Literal(iot_standard, datatype=XSD.string)))
+            self.g.add((device_uri, ioto.hasStandard, standard_uri))
+
+        return "IoT Device, Sensor, ObservableProperty, Room, Protocol, and Standard linked", 201
     
     def add_observation(self, data):
         #TODO: SPARQL for get sensor measure and name based in sensor_name

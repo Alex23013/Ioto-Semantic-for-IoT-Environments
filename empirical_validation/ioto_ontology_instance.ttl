@@ -3,19 +3,109 @@
 @prefix sosa1: <https://www.w3.org/ns/sosa/> .
 @prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
 
+ioto:AirQualityMonitor a ioto:IoTDevice,
+        ioto:ModernDevice ;
+    rdfs:label "AirQualityMonitor"^^xsd:string ;
+    ioto:hasSensor ioto:airQualitySensor01 ;
+    ioto:hasStandard ioto:OneM2M ;
+    ioto:locatedInRoom ioto:exhibition1 ;
+    ioto:usesProtocol ioto:CoAP .
+
+ioto:LightSensor a ioto:IoTDevice,
+        ioto:ModernDevice ;
+    rdfs:label "LightSensor"^^xsd:string ;
+    ioto:hasSensor ioto:illuminationSensor01 ;
+    ioto:hasStandard ioto:LwM2M ;
+    ioto:locatedInRoom ioto:exhibition1 ;
+    ioto:usesProtocol ioto:Zigbee .
+
+ioto:NoiseDetector a ioto:IoTDevice,
+        ioto:ModernDevice ;
+    rdfs:label "NoiseDetector"^^xsd:string ;
+    ioto:hasSensor ioto:noiseSensor01 ;
+    ioto:hasStandard ioto:FIWARE ;
+    ioto:locatedInRoom ioto:exhibition1 ;
+    ioto:usesProtocol ioto:LoRaWAN .
+
 ioto:SmartThermostat a ioto:IoTDevice,
         ioto:ModernDevice ;
     rdfs:label "SmartThermostat"^^xsd:string ;
-    ioto:hasSensor ioto:humiditySensor01,
-        ioto:tempSensor01 .
+    ioto:hasSensor ioto:tempSensor01 ;
+    ioto:hasStandard <https://github.com/Alex23013/Ioto-Semantic-for-IoT-Environments/blob/main/iot_ontologies/ioto-protege.ttl/O-MI/O-DF> ;
+    ioto:locatedInRoom ioto:exhibition1 ;
+    ioto:usesProtocol ioto:MQTT .
 
-ioto:humidity a sosa1:ObservableProperty ;
-    rdfs:label "humidity"^^xsd:string .
+ioto:SmokeDetector a ioto:IoTDevice,
+        ioto:LegacyDevice ;
+    rdfs:label "SmokeDetector"^^xsd:string ;
+    ioto:hasSensor ioto:smokeSensor01 ;
+    ioto:hasStandard ioto:EclipseDitto ;
+    ioto:locatedInRoom ioto:exhibition1 ;
+    ioto:usesProtocol ioto:Bluetooth .
 
-ioto:humiditySensor01 a sosa1:Sensor ;
-    rdfs:label "humiditySensor01"^^xsd:string ;
+ioto:Bluetooth a ioto:CommunicationProtocol ;
+    rdfs:label "Bluetooth"^^xsd:string .
+
+ioto:CoAP a ioto:CommunicationProtocol ;
+    rdfs:label "CoAP"^^xsd:string .
+
+ioto:EclipseDitto a ioto:IoTStandard ;
+    rdfs:label "EclipseDitto"^^xsd:string .
+
+ioto:FIWARE a ioto:IoTStandard ;
+    rdfs:label "FIWARE"^^xsd:string .
+
+ioto:LoRaWAN a ioto:CommunicationProtocol ;
+    rdfs:label "LoRaWAN"^^xsd:string .
+
+ioto:LwM2M a ioto:IoTStandard ;
+    rdfs:label "LwM2M"^^xsd:string .
+
+ioto:MQTT a ioto:CommunicationProtocol ;
+    rdfs:label "MQTT"^^xsd:string .
+
+<https://github.com/Alex23013/Ioto-Semantic-for-IoT-Environments/blob/main/iot_ontologies/ioto-protege.ttl/O-MI/O-DF> a ioto:IoTStandard ;
+    rdfs:label "O-MI/O-DF"^^xsd:string .
+
+ioto:OneM2M a ioto:IoTStandard ;
+    rdfs:label "OneM2M"^^xsd:string .
+
+ioto:XML a ioto:DataFormat .
+
+ioto:Zigbee a ioto:CommunicationProtocol ;
+    rdfs:label "Zigbee"^^xsd:string .
+
+ioto:airQualitySensor01 a sosa1:Sensor ;
+    rdfs:label "airQualitySensor01"^^xsd:string ;
     ioto:usesDataFormat ioto:JSON ;
-    sosa1:observes ioto:humidity .
+    sosa1:observes ioto:air_quality .
+
+ioto:air_quality a sosa1:ObservableProperty ;
+    rdfs:label "air_quality"^^xsd:string .
+
+ioto:illumination a sosa1:ObservableProperty ;
+    rdfs:label "illumination"^^xsd:string .
+
+ioto:illuminationSensor01 a sosa1:Sensor ;
+    rdfs:label "illuminationSensor01"^^xsd:string ;
+    ioto:usesDataFormat ioto:JSON ;
+    sosa1:observes ioto:illumination .
+
+ioto:noise a sosa1:ObservableProperty ;
+    rdfs:label "noise"^^xsd:string .
+
+ioto:noiseSensor01 a sosa1:Sensor ;
+    rdfs:label "noiseSensor01"^^xsd:string ;
+    ioto:usesDataFormat ioto:JSON ;
+    sosa1:observes ioto:noise .
+
+ioto:smoke a sosa1:ObservableProperty ;
+    rdfs:label "smoke"^^xsd:string .
+
+ioto:smokeSensor01 a sosa1:Sensor ;
+    rdfs:label "smokeSensor01"^^xsd:string ;
+    ioto:usesDataFormat ioto:XML ;
+    sosa1:observes ioto:smoke .
 
 ioto:tempSensor01 a sosa1:Sensor ;
     rdfs:label "tempSensor01"^^xsd:string ;
@@ -26,4 +116,7 @@ ioto:temperature a sosa1:ObservableProperty ;
     rdfs:label "temperature"^^xsd:string .
 
 ioto:JSON a ioto:DataFormat .
+
+ioto:exhibition1 a ioto:Room ;
+    rdfs:label "exhibition1"^^xsd:string .
 

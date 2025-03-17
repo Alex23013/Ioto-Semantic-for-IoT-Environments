@@ -2,20 +2,22 @@ from flask import Flask, request
 from ontology_env import OntologyEnvironment
 from python_env import PythonEnvironment
 from questionnary1 import QuestionnaryModule1
+from questionnary2 import QuestionnaryModule2
 from utils import dispatch_method, validate_object_data
 
 app = Flask(__name__)
 
 DEFAULT_METHOD = 'ontology'
-DEBUG_MODE = False
-RESULT_MODE =  'content' # 'time' or 'content'
+DEBUG_MODE = True
+RESULT_MODE =  'time' # 'time' or 'content'
 
 smart_environment = PythonEnvironment()
 ontology_environment = OntologyEnvironment()
 questionnary1 = QuestionnaryModule1(RESULT_MODE)
+questionnary2 = QuestionnaryModule2(RESULT_MODE)
 
-@app.route('/questions')
-def list_questions():
+@app.route('/questions/1')
+def mod1_questions():
     queries = [
                 questionnary1.cat1_qa,
                 questionnary1.cat1_qb, 
@@ -24,11 +26,27 @@ def list_questions():
 
     results = {
         questionnary1.module_name: {
-            f"cat1_q{chr(97 + i)}": query() for i, query in enumerate(queries)
+            f"mod1_q{chr(97 + i)}": query() for i, query in enumerate(queries)
         }
     }
     return results, 200
 
+@app.route('/questions/2')
+def mod2_questions():
+    queries = [
+                questionnary2.cat1_qa,
+                questionnary2.cat1_qb, 
+                questionnary2.cat1_qc
+            ]
+
+    results = {
+        questionnary2.module_name: {
+            f"mod2_q{chr(97 + i)}": query() for i, query in enumerate(queries)
+        }
+    }
+    return results, 200
+
+# instance implementation
 @app.route('/sensors')
 def list_sensors():
     method = request.args.get('method', DEFAULT_METHOD)
@@ -74,6 +92,7 @@ def get_ontology():
     ontology_environment.get_serialized_graph(),
     return "Ontology instance downloaded"
 
+#TODO: check implementation
 @app.route('/observations')
 def get_observations():
     method = request.args.get('method', DEFAULT_METHOD)
@@ -83,7 +102,7 @@ def get_observations():
         lambda: ontology_environment.get_serialized_graph(), #TODO: implement custom method
         lambda: smart_environment.get_sensor_observation(sensor)
     )
-
+#TODO: check implementation
 @app.route('/observations', methods=['POST'])
 def add_observation():
     data = request.get_json()
@@ -97,6 +116,7 @@ def add_observation():
         lambda: smart_environment.add_observation(data)
     )
 
+#TODO: check implementation
 @app.route('/env_current_state', methods=['GET'])
 def list_last_observations():
     method = request.args.get('method', DEFAULT_METHOD)
@@ -109,13 +129,15 @@ def list_last_observations():
 @app.route('/visitors', methods=['POST'])
 def add_visitor():
     data = request.get_json()
+    if DEBUG_MODE:
+        print(data)
     error_response, status_code= validate_object_data(data, 'name', 'role')
     if status_code != 200:
         return error_response
     method = data.get('method', DEFAULT_METHOD)
     return dispatch_method(
         method,
-        lambda: ontology_environment.add_visitor(data), #TODO: implement custom method
+        lambda: ontology_environment.add_external_visitor(data),
         lambda: smart_environment.add_visitor(data)
     )
 

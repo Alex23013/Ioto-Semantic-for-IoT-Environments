@@ -9,8 +9,9 @@ ioto = Namespace("https://github.com/Alex23013/Ioto-Semantic-for-IoT-Environment
 from rdflib.plugins.sparql import prepareQuery
 import time
 
+# TODO: this questions are mocked still need to be implemented
 
-class QuestionnaryModule1:
+class QuestionnaryModule2:
     def __init__(self, result_mode, file_path="ioto_ontology_instance.ttl"):
         self.g = Graph()
         self.g.parse(file_path, format="turtle")
@@ -18,7 +19,7 @@ class QuestionnaryModule1:
         self.g.bind("ssn", ssn)
         self.g.bind("ioto", ioto)
         self.result_mode = result_mode
-        self.module_name = "Questionnary Module 1: Interoptability"
+        self.module_name = "Questionnary Module 2: Privacy Policy"
 
     def cat1_qa(self):
         start_time = time.time()

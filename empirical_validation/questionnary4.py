@@ -13,7 +13,7 @@ import time
 
 # TODO: this questions are mocked still need to be implemented
 
-class QuestionnaryModule3:
+class QuestionnaryModule4:
     def __init__(self, result_mode, file_path="ioto_ontology_instance.ttl"):
         self.g = Graph()
         self.g.parse(file_path, format="turtle")
@@ -21,9 +21,9 @@ class QuestionnaryModule3:
         self.g.bind("colpri", colpri)
         self.g.bind("ioto", ioto)
         self.result_mode = result_mode
-        self.module_name = "Questionnary Module 3: Security"
+        self.module_name = "Questionnary Module 4:Environment Awareness"
 
-    def mod3_qa(self):
+    def mod4_qa(self):
         start_time = time.time()
         query = prepareQuery("""
         """, initNs={"ioto": ioto, "colpri": colpri})
@@ -38,7 +38,7 @@ class QuestionnaryModule3:
             return f"{execution_time:.4f} seconds"
         return results
     
-    def mod3_qb(self):
+    def mod4_qb(self):
         start_time = time.time()
         query = prepareQuery("""
         """, initNs={"colpri": colpri, "ioto": ioto, "ds4iot": ds4iot, "rdfs": RDFS})
@@ -55,7 +55,7 @@ class QuestionnaryModule3:
         return results
 
     
-    def mod3_qc(self):
+    def mod4_qc(self):
         start_time = time.time()
         query = prepareQuery("""
             
@@ -70,7 +70,7 @@ class QuestionnaryModule3:
             return f"{execution_time:.4f} seconds"
         return results
     
-    def mod3_qd(self):
+    def mod4_qd(self):
         start_time = time.time()
         query = prepareQuery("""
             

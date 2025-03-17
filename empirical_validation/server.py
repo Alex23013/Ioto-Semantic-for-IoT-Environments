@@ -4,6 +4,8 @@ from python_env import PythonEnvironment
 from questionnary1 import QuestionnaryModule1
 from questionnary2 import QuestionnaryModule2
 from questionnary3 import QuestionnaryModule3
+from questionnary4 import QuestionnaryModule4
+from questionnary5 import QuestionnaryModule5
 from utils import dispatch_method, validate_object_data
 
 app = Flask(__name__)
@@ -17,6 +19,8 @@ ontology_environment = OntologyEnvironment()
 questionnary1 = QuestionnaryModule1(RESULT_MODE)
 questionnary2 = QuestionnaryModule2(RESULT_MODE)
 questionnary3 = QuestionnaryModule3(RESULT_MODE)
+questionnary4 = QuestionnaryModule4(RESULT_MODE)
+questionnary5 = QuestionnaryModule5(RESULT_MODE)
 
 @app.route('/questions/1')
 def mod1_questions():
@@ -61,6 +65,38 @@ def mod3_questions():
     results = {
         questionnary3.module_name: {
             f"mod3_q{chr(97 + i)}": query() for i, query in enumerate(queries)
+        }
+    }
+    return results, 200
+
+@app.route('/questions/4')
+def mod4_questions():
+    queries = [
+                questionnary4.mod4_qa,
+                questionnary4.mod4_qb, 
+                questionnary4.mod4_qc,
+                questionnary4.mod4_qd
+            ]
+
+    results = {
+        questionnary4.module_name: {
+            f"mod4_q{chr(97 + i)}": query() for i, query in enumerate(queries)
+        }
+    }
+    return results, 200
+
+@app.route('/questions/5')
+def mod5_questions():
+    queries = [
+                questionnary5.mod5_qa,
+                questionnary5.mod5_qb, 
+                questionnary5.mod5_qc,
+                questionnary5.mod5_qd
+            ]
+
+    results = {
+        questionnary5.module_name: {
+            f"mod5_q{chr(97 + i)}": query() for i, query in enumerate(queries)
         }
     }
     return results, 200

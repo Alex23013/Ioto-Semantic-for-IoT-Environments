@@ -5,6 +5,12 @@ ssn = Namespace("http://www.w3.org/ns/ssn/")
 seas = Namespace('https://w3id.org/seas/')
 xsd = Namespace('http://www.w3.org/2001/XMLSchema#')
 ioto = Namespace("https://github.com/Alex23013/Ioto-Semantic-for-IoT-Environments/blob/main/iot_ontologies/ioto-protege.ttl/")
+# module 2
+colpri = Namespace("https://github/ioto/EnhacedOntology4IoT/colpri#")
+ds4iot = Namespace("https://github/ioto/EnhacedOntology4IoT/ds4iot#")
+import base64
+from cryptography.fernet import Fernet
+
 
 from rdflib.plugins.sparql import prepareQuery
 
@@ -22,11 +28,19 @@ valid_formats = ['turtle', 'xml', 'n3', 'nt', 'json-ld']
 
 
 class OntologyEnvironment:
-    def __init__(self, init_graph = Graph()):
+    def __init__(self, init_graph = Graph(), encryption_key = b'UNxkX76p0EW7Frcx7zux7VFpp5Uxl43FLGD4SxEBppM='):
         self.g = init_graph
         self.g.bind("sosa", sosa)
         self.g.bind("ssn", ssn)
         self.g.bind("ioto", ioto)
+        self.g.bind("colpri", colpri)
+        self.g.bind("ds4iot", ds4iot)
+        # module2
+        self.create_data_controller("MuseumAdmin", "VisitorDataProcessing")
+        self.museum_admin = ioto.MuseumAdmin
+        self.default_encryption_algorithm = ioto.AES256  # Example encryption algorithm
+        self.default_security_policy = ioto.GeneralDataProtectionRegulation  # Example policy
+        self.cipher = Fernet(encryption_key)
 
     def get_serialized_graph(self, req_format='turtle'):
         if req_format not in valid_formats:
@@ -161,12 +175,83 @@ class OntologyEnvironment:
         self.g.add((observation, sosa.hasResult, Literal(data.value, datatype=XSD.float)))
         # TODO: add timestamp
         return 'observation received', 201
+    
+    def create_data_controller(self, controller_name, purpose):
+        """
+        Creates a DataController with a specified purpose.
+        """
+        controller_uri = ioto[controller_name]
+        purpose_uri = ioto[purpose]
 
-    def add_visitor(self, data):
-        req_name = data.get('name')
+        # Create DataController instance
+        self.g.add((controller_uri, RDF.type, ioto.DataController))
+        self.g.add((controller_uri, RDFS.label, Literal(controller_name, datatype=XSD.string)))
+
+        # Create Purpose and link to DataController
+        self.g.add((purpose_uri, RDF.type, ioto.Purpose))
+        self.g.add((controller_uri, ioto.definesPurpose, purpose_uri))
+
+        return f"DataController '{controller_name}' created with purpose '{purpose}'."
+
+    def encrypt_data(self, plaintext: str) -> str:
+        """Encrypts the given plaintext using AES-256."""
+        encrypted_bytes = self.cipher.encrypt(plaintext.encode())
+        return base64.urlsafe_b64encode(encrypted_bytes).decode()  # Store as string
+
+    def add_external_visitor(self, data):
         req_role = data.get('role')
-        new_visitor_uri = ioto[req_name]
-        self.g.add((new_visitor_uri, RDF.type, ioto.Visitor)) #TODO: ver como modelar a las personas
-        self.g.add((new_visitor_uri, ioto.hasRole, Literal(req_role, datatype=XSD.string))) 
+        if req_role == 'visitor':
+            self.add_visitor(data)
+        else:
+            self.add_personal(data) 
         return 'visitor added', 201
-# create a method that analyse the observations and get high level info
+    
+    def add_visitor(self, visitor_data):
+        visitor_id = visitor_data.get("id")
+        consent_given = visitor_data.get("consent")
+
+        # Create Visitor Consent instance
+        consent_uri = ioto[f"VisitorConsent_{visitor_id}"]
+        consent_type = colpri.GivenConsent if consent_given else colpri.UngivenConsent
+
+        self.g.add((consent_uri, RDF.type, consent_type))
+        self.g.add((consent_uri, RDFS.label, Literal(f"Consent for visitor {visitor_id}", datatype=XSD.string)))
+
+        # Link MuseumAdmin to the Consent
+        self.g.add((self.museum_admin, ioto.makesConsent, consent_uri))
+
+        # Encrypt and store IdentityData
+        identity_data_properties = ["gender", "name", "lastname"]
+        for prop in identity_data_properties:
+            value = visitor_data.get(prop)
+            if value:
+                encrypted_value = self.encrypt_data(value)
+                data_uri = ioto[f"{prop.capitalize()}_{visitor_id}"]
+                self.g.add((data_uri, RDF.type, colpri.IdentityData))
+                self.g.add((data_uri, RDFS.label, Literal(f"{prop.capitalize()} of visitor {visitor_id}", datatype=XSD.string)))
+                self.g.add((data_uri, ioto.mustBeTreatedAs, ds4iot.EncryptedData))
+                self.g.add((data_uri, ioto.encryptedValue, Literal(encrypted_value, datatype=XSD.string)))  # Store encrypted
+
+        # Define encryption method and security policy
+        encryption_method_uri = ioto[f"EncryptionMethod_{visitor_id}"]
+        self.g.add((encryption_method_uri, RDF.type, ioto.EncryptionMethod))
+        self.g.add((encryption_method_uri, ioto.usesEncryptionAlgorithm, self.default_encryption_algorithm))
+
+        # Link encrypted data to encryption method and security policy
+        self.g.add((ds4iot.EncryptedData, ioto.hasEncryptionMethod, encryption_method_uri))
+        self.g.add((ds4iot.EncryptedData, ioto.followsSecurityPolicy, self.default_security_policy))
+
+        return f"Visitor Consent ({'Given' if consent_given else 'Ungiven'}) and IdentityData added for visitor {visitor_id}.", 201
+
+    def add_personal(self, personal_data):
+        personal_id = personal_data.get("id")
+
+        # Create Personal Consent instance (always GivenConsent)
+        consent_uri = ioto[f"PersonalConsent_{personal_id}"]
+        self.g.add((consent_uri, RDF.type, colpri.GivenConsent))
+        self.g.add((consent_uri, RDFS.label, Literal(f"Consent for personal {personal_id}", datatype=XSD.string)))
+
+        # Link MuseumAdmin to the Consent
+        self.g.add((self.museum_admin, ioto.makesConsent, consent_uri))
+
+        return "Personal Consent (Given) added.", 201

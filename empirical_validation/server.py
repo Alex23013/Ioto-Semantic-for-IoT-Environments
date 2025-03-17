@@ -201,7 +201,7 @@ def count_visitors():
     method = request.args.get('method', DEFAULT_METHOD)
     return dispatch_method(
         method,
-        lambda: ontology_environment.get_serialized_graph(), #TODO: implement custom method
+        lambda: ontology_environment.count_consents_by_data_controller(),
         lambda: smart_environment.count_visitors()
     )
 

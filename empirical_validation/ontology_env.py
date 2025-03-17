@@ -10,6 +10,7 @@ colpri = Namespace("https://github/ioto/EnhacedOntology4IoT/colpri#")
 ds4iot = Namespace("https://github/ioto/EnhacedOntology4IoT/ds4iot#")
 import base64
 from cryptography.fernet import Fernet
+from flask import jsonify
 
 
 from rdflib.plugins.sparql import prepareQuery
@@ -188,6 +189,10 @@ class OntologyEnvironment:
         # Create Purpose and link to DataController
         self.g.add((purpose_uri, RDF.type, ioto.Purpose))
         self.g.add((controller_uri, ioto.definesPurpose, purpose_uri))
+        
+        #Add concepts for consent
+        self.g.add((colpri.GivenConsent, RDFS.subClassOf, ioto.Consent))
+        self.g.add((colpri.UngivenConsent, RDFS.subClassOf, ioto.Consent))
 
         return f"DataController '{controller_name}' created with purpose '{purpose}'."
     
@@ -297,3 +302,25 @@ class OntologyEnvironment:
         self.g.add((self.museum_admin, ioto.makesConsent, consent_uri))
 
         return "Personal Consent (Given) added.", 201
+    
+    def count_consents_by_data_controller(self):
+        """
+        Counts the number of ioto:Consent instances made by ioto:DataController.
+        """
+        query = prepareQuery("""
+            SELECT (COUNT(?consent) AS ?consentCount)
+            WHERE {
+                ?controller a ioto:DataController ;
+                            ioto:makesConsent ?consent .
+                ?consent a ?consentType .
+                FILTER (?consentType IN (colpri:GivenConsent, colpri:UngivenConsent))
+            }
+        """, initNs={"ioto": ioto, "colpri": colpri})
+
+        result = self.g.query(query)
+
+        # Extract the count from the result
+        for row in result:
+            return jsonify({"consent_count": int(row.consentCount)}), 200  # Return JSON
+
+        return jsonify({"consent_count": 0}), 200  # Default return value

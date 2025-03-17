@@ -5,7 +5,7 @@ ssn = Namespace("http://www.w3.org/ns/ssn/")
 seas = Namespace('https://w3id.org/seas/')
 xsd = Namespace('http://www.w3.org/2001/XMLSchema#')
 ioto = Namespace("https://github.com/Alex23013/Ioto-Semantic-for-IoT-Environments/blob/main/iot_ontologies/ioto-protege.ttl/")
-# module 2
+# module2
 colpri = Namespace("https://github/ioto/EnhacedOntology4IoT/colpri#")
 ds4iot = Namespace("https://github/ioto/EnhacedOntology4IoT/ds4iot#")
 import base64
@@ -13,9 +13,6 @@ from cryptography.fernet import Fernet
 
 
 from rdflib.plugins.sparql import prepareQuery
-
-# Define namespaces for SPARQL queries
-#ioto = Namespace("http://example.com/ioto#")
 
 # Constants
 measure_to_property = {
@@ -176,7 +173,7 @@ class OntologyEnvironment:
         self.g.add((observation, sosa.hasResult, Literal(data.value, datatype=XSD.float)))
         # TODO: add timestamp
         return 'observation received', 201
-    
+    # module2
     def create_data_controller(self, controller_name, purpose):
         """
         Creates a DataController with a specified purpose.

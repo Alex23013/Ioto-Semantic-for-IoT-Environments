@@ -3,6 +3,7 @@ from ontology_env import OntologyEnvironment
 from python_env import PythonEnvironment
 from questionnary1 import QuestionnaryModule1
 from questionnary2 import QuestionnaryModule2
+from questionnary3 import QuestionnaryModule3
 from utils import dispatch_method, validate_object_data
 
 app = Flask(__name__)
@@ -15,6 +16,7 @@ smart_environment = PythonEnvironment()
 ontology_environment = OntologyEnvironment()
 questionnary1 = QuestionnaryModule1(RESULT_MODE)
 questionnary2 = QuestionnaryModule2(RESULT_MODE)
+questionnary3 = QuestionnaryModule3(RESULT_MODE)
 
 @app.route('/questions/1')
 def mod1_questions():
@@ -36,12 +38,29 @@ def mod2_questions():
     queries = [
                 questionnary2.mod2_qa,
                 questionnary2.mod2_qb, 
-                #questionnary2.mod2_qc
+                #questionnary2.mod2_qc,
+                #questionnary2.mod2_qd
             ]
 
     results = {
         questionnary2.module_name: {
             f"mod2_q{chr(97 + i)}": query() for i, query in enumerate(queries)
+        }
+    }
+    return results, 200
+
+@app.route('/questions/3')
+def mod3_questions():
+    queries = [
+                questionnary3.mod3_qa,
+                questionnary3.mod3_qb, 
+                questionnary3.mod3_qc,
+                questionnary3.mod3_qd
+            ]
+
+    results = {
+        questionnary3.module_name: {
+            f"mod3_q{chr(97 + i)}": query() for i, query in enumerate(queries)
         }
     }
     return results, 200

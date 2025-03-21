@@ -88,11 +88,17 @@ class QuestionnaryModule2:
     def mod2_qc(self):
         start_time = time.time()
         query = prepareQuery("""
-            
-        """, initNs={"colpri": colpri})
+            SELECT ?dataDomain ?accessControl
+            WHERE {
+            ?dataDomain ds4iot:hasAccessControl
+            ?accessControl .
+            }            
+        """, initNs={"ds4iot": ds4iot})
         results = []
         for row in self.g.query(query):
-            results.append({              
+            results.append({    
+                "data_domain": str(row.dataDomain),
+                "access_control": str(row.accessControl)         
             })
         end_time = time.time()
         execution_time = end_time - start_time

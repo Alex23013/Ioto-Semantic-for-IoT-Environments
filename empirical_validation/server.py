@@ -12,7 +12,7 @@ app = Flask(__name__)
 
 DEFAULT_METHOD = 'ontology'
 DEBUG_MODE = True
-RESULT_MODE =  'time' # 'time' or 'content'
+RESULT_MODE =  'content' # 'time' or 'content'
 
 smart_environment = PythonEnvironment()
 ontology_environment = OntologyEnvironment()
@@ -42,7 +42,7 @@ def mod2_questions():
     queries = [
                 questionnary2.mod2_qa,
                 questionnary2.mod2_qb, 
-                #questionnary2.mod2_qc,
+                questionnary2.mod2_qc,
                 #questionnary2.mod2_qd
             ]
 

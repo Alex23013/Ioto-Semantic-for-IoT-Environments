@@ -43,7 +43,7 @@ def mod2_questions():
                 questionnary2.mod2_qa,
                 questionnary2.mod2_qb, 
                 questionnary2.mod2_qc,
-                #questionnary2.mod2_qd
+                questionnary2.mod2_qd
             ]
 
     results = {

@@ -109,11 +109,21 @@ class QuestionnaryModule2:
     def mod2_qd(self):
         start_time = time.time()
         query = prepareQuery("""
-            
-        """, initNs={"colpri": colpri})
+            SELECT DISTINCT ?device ?dataDomain
+            ?accessControlModel
+            WHERE {
+            ?device a ioto:IoTDevice .
+            ?device ioto:generatesData ?dataDomain .
+            ?dataDomain ds4iot:hasAccessControl
+            ?accessControlModel .
+            }
+        """, initNs={"ioto": ioto, "ds4iot": ds4iot})
         results = []
         for row in self.g.query(query):
-            results.append({              
+            results.append({      
+                "device": str(row.device),
+                "data_domain": str(row.dataDomain),
+                "access_control_model": str(row.accessControlModel)        
             })
         end_time = time.time()
         execution_time = end_time - start_time

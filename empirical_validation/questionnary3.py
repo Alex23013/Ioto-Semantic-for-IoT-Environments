@@ -90,11 +90,22 @@ class QuestionnaryModule3:
     def mod3_qc(self):
         start_time = time.time()
         query = prepareQuery("""
-            
-        """, initNs={"colpri": colpri})
+            SELECT ?anomaly ?abnormalBehavior ?device ?monitor
+            WHERE {
+            ?anomaly a ioto:Anomaly ;
+                    ioto:representsAbnormalBehavior ?abnormalBehavior ;
+                    ioto:detectedBy ?monitor .
+
+            ?device ioto:hasBehavior ?abnormalBehavior .
+            }            
+        """, initNs={"ioto": ioto})
         results = []
         for row in self.g.query(query):
-            results.append({              
+            results.append({      
+                "anomaly": str(row.anomaly),
+                "abnormal_behavior": str(row.abnormalBehavior),
+                "device": str(row.device),
+                "monitor": str(row.monitor)        
             })
         end_time = time.time()
         execution_time = end_time - start_time
@@ -105,11 +116,26 @@ class QuestionnaryModule3:
     def mod3_qd(self):
         start_time = time.time()
         query = prepareQuery("""
-            
-        """, initNs={"colpri": colpri})
+           SELECT ?anomaly ?threatResponse ?incidentManager
+            WHERE {
+                ?anomaly a ioto:Anomaly ;
+                        ioto:requiresResponse ?threatResponse .
+                        
+                ?threatResponse a ioto:ThreatResponse ;
+                                rdfs:label ?responseDescription .
+
+                OPTIONAL {
+                    ?incidentManager a ioto:IncidentResponseManager ;
+                                    ioto:handlesIncident ?threatResponse .
+                }
+            }       
+        """, initNs={"ioto": ioto, "rdfs": RDFS})
         results = []
         for row in self.g.query(query):
-            results.append({              
+            results.append({     
+                "anomaly": str(row.anomaly),
+                "threat_response": str(row.threatResponse),
+                "incident_manager": str(row.incidentManager)
             })
         end_time = time.time()
         execution_time = end_time - start_time

@@ -15,7 +15,7 @@ DEBUG_MODE = True
 RESULT_MODE =  'time' # 'time' or 'content'
 
 smart_environment = PythonEnvironment()
-ontology_environment = OntologyEnvironment(continue_instance=False)
+ontology_environment = OntologyEnvironment(continue_instance=True)
 questionnary1 = QuestionnaryModule1(RESULT_MODE)
 questionnary2 = QuestionnaryModule2(RESULT_MODE)
 questionnary3 = QuestionnaryModule3(RESULT_MODE)
@@ -58,8 +58,8 @@ def mod3_questions():
     queries = [
                 questionnary3.mod3_qa,
                 questionnary3.mod3_qb, 
-                #questionnary3.mod3_qc,
-                #questionnary3.mod3_qd
+                questionnary3.mod3_qc,
+                questionnary3.mod3_qd
             ]
 
     results = {

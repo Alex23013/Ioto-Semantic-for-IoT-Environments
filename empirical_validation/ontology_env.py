@@ -16,6 +16,7 @@ from datetime import datetime
 
 from rdflib.plugins.sparql import prepareQuery
 
+DEBUG_MODE = True
 # Constants
 measure_to_property = {
     'temperature': seas.temperature,
@@ -48,6 +49,7 @@ class OntologyEnvironment:
         self.encrypted_security_policy = ioto.EncryptedDataProtectionRegulation  # Encrypted policy
         self.moderate_security_policy = ioto.ModerateDataProtectionRegulation  # Moderate policy
         self.cipher = Fernet(encryption_key)
+        self.response_manager = self.create_incident_response_manager("MuseumIncidentResponseManager")
 
     def get_serialized_graph(self, req_format='turtle'):
         if req_format not in valid_formats:
@@ -233,7 +235,8 @@ class OntologyEnvironment:
         num_obs = 0
         for row in obs_result:
             num_obs = int(row[0].toPython())
-        print(f"Number of observations found for {sensor_name}: {num_obs}")
+        if DEBUG_MODE:
+            print(f"Number of observations found for {sensor_name}: {num_obs}")
         # Create Observation instance
         observation_uri = ioto[f"{sensor_name}_observation_{num_obs + 1}"]
         self.g.add((observation_uri, RDF.type, sosa.Observation))
@@ -283,36 +286,48 @@ class OntologyEnvironment:
             self.g.add((anomaly_uri, RDF.type, ioto.Anomaly))
 
             # Link to SecurityMonitor
-            monitor_query = f"""
-            PREFIX ioto: <http://example.org/ioto#>
-            SELECT ?monitor WHERE {{
-                ?monitor a ioto:SecurityMonitor ;
-                        ioto:monitors <{device_uri}> .
-            }}
+            monitor_query = """
+                SELECT ?monitor WHERE {
+                    ?monitor a ioto:SecurityMonitor ;
+                            ioto:monitors ?device .
+                }
             """
-            monitor_result = self.g.query(monitor_query, initNs={'ioto': ioto})
+            monitor_result = self.g.query(monitor_query, initNs={'ioto': ioto}, initBindings={'device': device_uri})
             monitor_uri = None
             for row in monitor_result:
                 monitor_uri = row.monitor
-            if monitor_uri:
-                self.g.add((monitor_uri, ioto.detectsAnomaly, anomaly_uri))
-            else:
-                # Create SecurityMonitor
-                print("Monitor not found, creating new one")
-                monitor_uri = ioto[f"SecurityMonitor_for_{device_uri}"]
+                if DEBUG_MODE:
+                    print(f"SecurityMonitor found: {monitor_uri}")
+            if not monitor_uri:
+                # Create SecurityMonitor if not found
+                if DEBUG_MODE:
+                    print(f"No SecurityMonitor found for {device_uri}, creating one...")
+                monitor_uri = ioto[f"SecurityMonitor_for_{sensor_name}"]
                 self.g.add((monitor_uri, RDF.type, ioto.SecurityMonitor))
                 self.g.add((monitor_uri, ioto.monitors, device_uri))
+
+            # Link the monitor to the detected anomaly
             self.g.add((monitor_uri, ioto.detectsAnomaly, anomaly_uri))
+            # Add the inverse relationship detectedBy
+            self.g.add((anomaly_uri, ioto.detectedBy, monitor_uri))
 
             # Create SecurityEvent
             event_uri = ioto[f"SecurityEvent_{sensor_name}_{num_obs}"]
             self.g.add((event_uri, RDF.type, ioto.SecurityEvent))
+            # Link Anomaly to AbnormalBehavior
+            self.g.add((anomaly_uri, ioto.representsAbnormalBehavior, ioto.AbnormalBehavior))
 
-            #TODO: asesgurarse que tenemos un security para manejar esta Response
+
             # Create ThreatResponse and link it with requiresResponse
             response_uri = ioto[f"ThreatResponse_{sensor_name}_{num_obs}"]
             self.g.add((response_uri, RDF.type, ioto.ThreatResponse))
+            self.g.add((response_uri, RDFS.label, Literal(f"Threat response for anomaly detected by {sensor_name}", datatype=XSD.string)))
             self.g.add((anomaly_uri, ioto.requiresResponse, response_uri))
+
+            if hasattr(self, 'response_manager') and self.response_manager:
+                self.g.add((self.response_manager, ioto.handlesIncident, response_uri))
+                if DEBUG_MODE:
+                    print(f"IncidentResponseManager '{self.response_manager}' handles {response_uri}")
 
             # Link Anomaly to SecurityEvent
             self.g.add((anomaly_uri, ioto.triggersAlert, event_uri))
@@ -355,6 +370,13 @@ class OntologyEnvironment:
         self.g.add((encryption_method_uri, ioto.usesEncryptionAlgorithm, self.default_encryption_algorithm))
         print(f"EncryptionMethod '{self.default_encryption_algorithm}' added to IoT instance.")
         return crypto_manager_uri, encryption_method_uri
+    
+    def create_incident_response_manager(self, manager_name):
+        manager_uri = ioto[manager_name]
+        self.g.add((manager_uri, RDF.type, ioto.IncidentResponseManager))
+        self.g.add((manager_uri, RDFS.label, Literal(manager_name, datatype=XSD.string)))
+        print(f"IncidentResponseManager '{manager_name}' created.")
+        return manager_uri
     
     def insert_identity_data_concept(self):
         """

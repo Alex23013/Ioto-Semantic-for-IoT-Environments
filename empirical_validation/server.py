@@ -15,7 +15,7 @@ DEBUG_MODE = True
 RESULT_MODE =  'time' # 'time' or 'content'
 
 smart_environment = PythonEnvironment()
-ontology_environment = OntologyEnvironment()
+ontology_environment = OntologyEnvironment(continue_instance=False)
 questionnary1 = QuestionnaryModule1(RESULT_MODE)
 questionnary2 = QuestionnaryModule2(RESULT_MODE)
 questionnary3 = QuestionnaryModule3(RESULT_MODE)

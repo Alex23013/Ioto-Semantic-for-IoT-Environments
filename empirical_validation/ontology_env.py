@@ -11,6 +11,7 @@ ds4iot = Namespace("https://github/ioto/EnhacedOntology4IoT/ds4iot#")
 import base64
 from cryptography.fernet import Fernet
 from flask import jsonify
+from datetime import datetime
 
 
 from rdflib.plugins.sparql import prepareQuery
@@ -26,8 +27,11 @@ valid_formats = ['turtle', 'xml', 'n3', 'nt', 'json-ld']
 
 
 class OntologyEnvironment:
-    def __init__(self, init_graph = Graph(), encryption_key = b'UNxkX76p0EW7Frcx7zux7VFpp5Uxl43FLGD4SxEBppM='):
-        self.g = init_graph
+    def __init__(self, continue_instance,  encryption_key = b'UNxkX76p0EW7Frcx7zux7VFpp5Uxl43FLGD4SxEBppM='):
+        self.g = Graph()
+        if continue_instance:
+            file_path="ioto_ontology_instance.ttl"
+            self.g.parse(file_path, format="turtle")
         self.g.bind("sosa", sosa)
         self.g.bind("ssn", ssn)
         self.g.bind("ioto", ioto)
@@ -99,6 +103,7 @@ class OntologyEnvironment:
         room_name = data.get('room') 
         protocol = data.get('protocol')
         iot_standard = data.get('iot_standard')
+        threshold = data.get('threshold')
 
         if self.is_created_sensor_name(sensor_name):
             return 'Sensor already exists', 400
@@ -118,6 +123,10 @@ class OntologyEnvironment:
 
         self.g.add((device_uri, RDFS.label, Literal(device_name, datatype=XSD.string)))
 
+         # Add threshold if provided
+        if threshold is not None:
+            self.g.add((device_uri, ioto.hasThreshold, Literal(float(threshold), datatype=XSD.float)))
+            
         # Create Sensor
         sensor_uri = ioto[sensor_name]
         self.g.add((sensor_uri, RDF.type, sosa.Sensor))
@@ -178,24 +187,118 @@ class OntologyEnvironment:
         self.g.add((device_uri, ioto.triggersAccessControl, access_control_uri))
         self.g.add((device_uri, ioto.followsSecurityPolicy, self.moderate_security_policy))
 
+        # Create and link SecurityMonitor
+        monitor_uri = ioto[f"SecurityMonitor_for_{device_name}"]
+        self.g.add((monitor_uri, RDF.type, ioto.SecurityMonitor))
+        self.g.add((monitor_uri, RDFS.label, Literal(f"SecurityMonitor for {device_name}", datatype=XSD.string)))
+        self.g.add((monitor_uri, ioto.monitors, device_uri))
+
         return "IoT Device, Sensor, ObservableProperty, Room, Protocol, and Standard linked", 201
     
     def add_observation(self, data):
-        #TODO: SPARQL for get sensor measure and name based in sensor_name
-        found_sensor = None
-        # Get the observed property dynamically based on the sensor's measure
-        observed_property = measure_to_property.get(found_sensor.measure.lower())
+        sensor_name = data.get('sensor')
+        sensor_value = data.get('value')
+        
+        # Get sensor URI
+        sensor_uri = ioto[sensor_name]
+        if not sensor_uri:
+            return 'Sensor not found', 404
+        
+        # SPARQL query to get the observed property of the sensor
+        query = f"""
+        SELECT ?observed_property WHERE {{
+            ioto:{sensor_name} sosa:observes ?observed_property .
+        }}
+        """
+        results = self.g.query(query, initNs={'sosa': sosa, 'ioto': ioto})
+        print("results of SPARQL query")
+        for row in self.g.query(query):
+            results.append({
+                "observed_property": row.observed_property
+            })
+        # Get the observed property
+        observed_property = None
+        for row in results:
+            observed_property = row.observed_property
         if not observed_property:
-            return 'Invalid measure', 400
-        observations = [] #TODO: SPARQL for  get observations from sensor
-        num_obs = len(observations)
-        observation = ioto[found_sensor.name + '_observation_'+str(num_obs)]
-        self.g.add((observation, RDF.type, sosa.Observation))
-        self.g.add((observation, sosa.madeBySensor, URIRef(ioto[found_sensor.name])))
-        self.g.add((observation, sosa.observedProperty, observed_property))
-        self.g.add((observation, sosa.hasResult, Literal(data.value, datatype=XSD.float)))
-        # TODO: add timestamp
-        return 'observation received', 201
+            return 'Observable property not found', 404
+
+        # Count existing observations of this sensor
+        obs_query = f"""
+        SELECT (COUNT(?obs) as ?count) WHERE {{
+            ?obs sosa:madeBySensor ioto:{sensor_name} .
+        }}
+        """
+        obs_result = self.g.query(obs_query, initNs={'sosa': sosa, 'ioto': ioto})
+        num_obs = 0
+        for row in obs_result:
+            num_obs = int(row[0].toPython())
+        print(f"Number of observations found for {sensor_name}: {num_obs}")
+        # Create Observation instance
+        observation_uri = ioto[f"{sensor_name}_observation_{num_obs + 1}"]
+        self.g.add((observation_uri, RDF.type, sosa.Observation))
+        self.g.add((observation_uri, sosa.madeBySensor, sensor_uri))
+        self.g.add((observation_uri, sosa.observedProperty, observed_property))
+        
+        # Add simple result (your value) and timestamp
+        self.g.add((observation_uri, sosa.hasSimpleResult, Literal(sensor_value, datatype=XSD.float)))
+        now = datetime.now().isoformat()
+        self.g.add((observation_uri, sosa.resultTime, Literal(now, datatype=XSD.dateTime)))
+        self.update_iot_device_behavior(sensor_name, sensor_value, num_obs)
+        return f'Observation added: {observation_uri}', 201
+    
+    def update_iot_device_behavior(self, sensor_name, sensor_value, num_obs):
+        # Fetch the IoT Device linked to the sensor
+        device_query = f"""
+        SELECT ?device WHERE {{
+            ?device ioto:hasSensor ioto:{sensor_name} .
+        }}
+        """
+        result = self.g.query(device_query, initNs={'ioto': ioto})
+        device_uri = None
+        for row in result:
+            device_uri = row.device
+        if not device_uri:
+            return 'Device not found', 404
+
+        # Update device current value
+        self.g.set((device_uri, ioto.hasCurrentValue, Literal(sensor_value, datatype=XSD.float)))
+        # Check threshold
+        threshold_query = f"""
+        SELECT ?threshold WHERE {{
+            <{device_uri}> ioto:hasThreshold ?threshold .
+        }}
+        """
+        threshold_result = self.g.query(threshold_query, initNs={'ioto': ioto})
+        threshold = None
+        for row in threshold_result:
+            threshold = row.threshold.toPython() # Convert to Python type
+        sensor_value = float(sensor_value)
+        if threshold is not None and sensor_value > threshold:
+            # Abnormal Behavior
+            self.g.set((device_uri, ioto.hasBehavior, ioto.AbnormalBehavior))
+
+            # Create Anomaly
+            anomaly_uri = ioto[f"Anomaly_{sensor_name}_{num_obs}"]
+            self.g.add((anomaly_uri, RDF.type, ioto.Anomaly))
+
+            # Link to SecurityMonitor (Assuming the monitor is named SecurityMonitor_1)
+            monitor_uri = ioto["SecurityMonitor_1"]
+            self.g.add((monitor_uri, ioto.detectsAnomaly, anomaly_uri))
+
+            # Create SecurityEvent
+            event_uri = ioto[f"SecurityEvent_{sensor_name}_{num_obs}"]
+            self.g.add((event_uri, RDF.type, ioto.SecurityEvent))
+
+            # Link Anomaly to SecurityEvent
+            self.g.add((anomaly_uri, ioto.triggersAlert, event_uri))
+        else:
+            # Normal Behavior
+            self.g.set((device_uri, ioto.hasBehavior, ioto.NormalBehavior))
+
+        return 'Device behavior updated', 201
+
+    
     # module2
     def create_data_controller(self, controller_name, purpose):
         """

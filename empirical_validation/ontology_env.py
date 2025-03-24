@@ -282,13 +282,37 @@ class OntologyEnvironment:
             anomaly_uri = ioto[f"Anomaly_{sensor_name}_{num_obs}"]
             self.g.add((anomaly_uri, RDF.type, ioto.Anomaly))
 
-            # Link to SecurityMonitor (Assuming the monitor is named SecurityMonitor_1)
-            monitor_uri = ioto["SecurityMonitor_1"]
+            # Link to SecurityMonitor
+            monitor_query = f"""
+            PREFIX ioto: <http://example.org/ioto#>
+            SELECT ?monitor WHERE {{
+                ?monitor a ioto:SecurityMonitor ;
+                        ioto:monitors <{device_uri}> .
+            }}
+            """
+            monitor_result = self.g.query(monitor_query, initNs={'ioto': ioto})
+            monitor_uri = None
+            for row in monitor_result:
+                monitor_uri = row.monitor
+            if monitor_uri:
+                self.g.add((monitor_uri, ioto.detectsAnomaly, anomaly_uri))
+            else:
+                # Create SecurityMonitor
+                print("Monitor not found, creating new one")
+                monitor_uri = ioto[f"SecurityMonitor_for_{device_uri}"]
+                self.g.add((monitor_uri, RDF.type, ioto.SecurityMonitor))
+                self.g.add((monitor_uri, ioto.monitors, device_uri))
             self.g.add((monitor_uri, ioto.detectsAnomaly, anomaly_uri))
 
             # Create SecurityEvent
             event_uri = ioto[f"SecurityEvent_{sensor_name}_{num_obs}"]
             self.g.add((event_uri, RDF.type, ioto.SecurityEvent))
+
+            #TODO: asesgurarse que tenemos un security para manejar esta Response
+            # Create ThreatResponse and link it with requiresResponse
+            response_uri = ioto[f"ThreatResponse_{sensor_name}_{num_obs}"]
+            self.g.add((response_uri, RDF.type, ioto.ThreatResponse))
+            self.g.add((anomaly_uri, ioto.requiresResponse, response_uri))
 
             # Link Anomaly to SecurityEvent
             self.g.add((anomaly_uri, ioto.triggersAlert, event_uri))

@@ -34,11 +34,15 @@ class OntologyEnvironment:
         self.g.bind("colpri", colpri)
         self.g.bind("ds4iot", ds4iot)
         # module2
-        self.create_data_controller("MuseumAdmin", "VisitorDataProcessing")
+        self.data_contoller_uri = self.create_data_controller("MuseumAdmin", "VisitorDataProcessing")
         self.insert_identity_data_concept()
         self.museum_admin = ioto.MuseumAdmin
+        # module3
         self.default_encryption_algorithm = ioto.AES256  # Example encryption algorithm
+        self.crypto_manager_uri, self.encryption_method_uri = self.create_crypto_manager_and_encryption_algorithm("Museum_CryptoManager")
         self.default_security_policy = ioto.GeneralDataProtectionRegulation  # Example policy
+        self.encrypted_security_policy = ioto.EncryptedDataProtectionRegulation  # Encrypted policy
+        self.moderate_security_policy = ioto.ModerateDataProtectionRegulation  # Moderate policy
         self.cipher = Fernet(encryption_key)
 
     def get_serialized_graph(self, req_format='turtle'):
@@ -172,6 +176,7 @@ class OntologyEnvironment:
 
         # Link IoTDevice to the AccessControl it triggers
         self.g.add((device_uri, ioto.triggersAccessControl, access_control_uri))
+        self.g.add((device_uri, ioto.followsSecurityPolicy, self.moderate_security_policy))
 
         return "IoT Device, Sensor, ObservableProperty, Room, Protocol, and Standard linked", 201
     
@@ -210,8 +215,19 @@ class OntologyEnvironment:
         #Add concepts for consent
         self.g.add((colpri.GivenConsent, RDFS.subClassOf, ioto.Consent))
         self.g.add((colpri.UngivenConsent, RDFS.subClassOf, ioto.Consent))
-
-        return f"DataController '{controller_name}' created with purpose '{purpose}'."
+        print(f"DataController '{controller_name}' created with purpose '{purpose}'.")
+        return controller_uri
+    
+    def create_crypto_manager_and_encryption_algorithm(self, manager_name):
+        crypto_manager_uri = ds4iot[manager_name]
+        self.g.add((crypto_manager_uri, RDF.type, ds4iot.CryptoManager))
+        self.g.add((crypto_manager_uri, RDFS.label, Literal(manager_name, datatype=XSD.string)))
+        print(f"CryptoManager '{manager_name}' added to IoT instance.")
+        encryption_method_uri = ioto[f"EncryptionMethod_for_IoT_instance"]
+        self.g.add((encryption_method_uri, RDF.type, ioto.EncryptionMethod))
+        self.g.add((encryption_method_uri, ioto.usesEncryptionAlgorithm, self.default_encryption_algorithm))
+        print(f"EncryptionMethod '{self.default_encryption_algorithm}' added to IoT instance.")
+        return crypto_manager_uri, encryption_method_uri
     
     def insert_identity_data_concept(self):
         """
@@ -233,7 +249,7 @@ class OntologyEnvironment:
         # Define the ontology reference
         self.g.add((colpri.IdentityData, RDFS.isDefinedBy, colpri._URI))
 
-        return "IdentityData concept added to ontology."
+        return "IdentityData concept with CryptoManager added to ontology."
 
     def encrypt_data(self, plaintext: str) -> str:
         """Encrypts the given plaintext using AES-256."""
@@ -248,7 +264,7 @@ class OntologyEnvironment:
             self.add_personal(data) 
         return 'visitor added', 201
     
-    def insert_personal_data(self, prop, visitor_id, value, is_sensitive):
+    def insert_personal_data(self, prop, visitor_id, value, is_sensitive, encryption_method_uri = None):
         """
         Inserts personal data as either SensitivePersonalData (encrypted) or NonSensitivePersonalData.
         
@@ -263,13 +279,17 @@ class OntologyEnvironment:
             encrypted_value = self.encrypt_data(value)  # Encrypt the data
             self.g.add((data_uri, RDF.type, colpri.IdentityData))
             self.g.add((data_uri, ioto.encryptedValue, Literal(encrypted_value, datatype=XSD.string)))  # Store encrypted
-            self.g.add((data_uri, ioto.mustBeTreatedAs, ds4iot.EncryptedData))  # Link to EncryptedData
+            self.g.add((data_uri, ioto.mustBeTreatedAs, ds4iot.EncryptedData))
+            
+            self.g.add((data_uri, ds4iot.hasCryptoManager, self.crypto_manager_uri))
+            # Link encrypted data to encryption method and security policy
+            self.g.add((data_uri, ioto.hasEncryptionMethod, self.encryption_method_uri))
+            self.g.add((data_uri, ioto.followsSecurityPolicy, self.encrypted_security_policy))
         else:
-            self.g.add((data_uri, RDF.type, colpri.NonSensitivePersonalData))  # Mark as NonSensitive
-        
-        # Add label
-        self.g.add((data_uri, RDFS.label, Literal(f"{prop.capitalize()} of visitor {visitor_id}", datatype=XSD.string)))
-    
+            self.g.add((data_uri, RDF.type, colpri.NonSensitivePersonalData))
+            self.g.add((data_uri, ioto.followsSecurityPolicy, self.default_security_policy))
+        return data_uri
+
     def add_visitor(self, visitor_data):
         visitor_id = visitor_data.get("id")
         consent_given = visitor_data.get("consent")
@@ -290,20 +310,10 @@ class OntologyEnvironment:
             "name": True,     # Always sensitive (IdentityData)
             "lastname": True  # Always sensitive (IdentityData)
         }
-
         for prop, is_sensitive in personal_data_properties.items():
             value = visitor_data.get(prop)
             if value:
-                self.insert_personal_data(prop, visitor_id, value, is_sensitive)
-        
-        # Define encryption method and security policy
-        encryption_method_uri = ioto[f"EncryptionMethod_{visitor_id}"]
-        self.g.add((encryption_method_uri, RDF.type, ioto.EncryptionMethod))
-        self.g.add((encryption_method_uri, ioto.usesEncryptionAlgorithm, self.default_encryption_algorithm))
-
-        # Link encrypted data to encryption method and security policy
-        self.g.add((ds4iot.EncryptedData, ioto.hasEncryptionMethod, encryption_method_uri))
-        self.g.add((ds4iot.EncryptedData, ioto.followsSecurityPolicy, self.default_security_policy))
+                self.insert_personal_data(prop, visitor_id, value, is_sensitive, self.encryption_method_uri)
 
         return f"Visitor Consent ({'Given' if consent_given else 'Ungiven'}) and IdentityData added for visitor {visitor_id}.", 201
 

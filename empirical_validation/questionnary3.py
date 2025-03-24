@@ -26,11 +26,24 @@ class QuestionnaryModule3:
     def mod3_qa(self):
         start_time = time.time()
         query = prepareQuery("""
-        """, initNs={"ioto": ioto, "colpri": colpri})
+            SELECT DISTINCT ?dataItem ?encryptionMethod ?algorithm ?securityPolicy ?cryptoManager
+            WHERE {
+                ?dataItem ioto:mustBeTreatedAs ds4iot:EncryptedData .
+                OPTIONAL { ?dataItem ioto:hasEncryptionMethod ?encryptionMethod . }
+                OPTIONAL { ?encryptionMethod ioto:usesEncryptionAlgorithm ?algorithm . }
+                OPTIONAL { ?dataItem ioto:followsSecurityPolicy ?securityPolicy . }
+                OPTIONAL { ?dataItem ds4iot:hasCryptoManager ?cryptoManager . }
+            }
+        """, initNs={"ds4iot": ds4iot, "ioto": ioto, "colpri": colpri})
 
         results = []
         for row in self.g.query(query):
             results.append({
+                "dataItem": row.dataItem,
+                "encryptionMethod": row.encryptionMethod,
+                "algorithm": row.algorithm,
+                "securityPolicy": row.securityPolicy,
+                "cryptoManager": row.cryptoManager
             })
         end_time = time.time()
         execution_time = end_time - start_time
@@ -41,11 +54,30 @@ class QuestionnaryModule3:
     def mod3_qb(self):
         start_time = time.time()
         query = prepareQuery("""
-        """, initNs={"colpri": colpri, "ioto": ioto, "ds4iot": ds4iot, "rdfs": RDFS})
+            SELECT DISTINCT ?entity ?accessControl ?securityPolicy
+            WHERE {
+                {
+                    ?entity a ioto:IoTDevice .
+                }
+                UNION
+                {
+                    ?entity ioto:followsSecurityPolicy ?securityPolicy .
+                }
+                UNION
+                {
+                    ?entity ioto:triggersAccessControl ?accessControl .
+                }
+                OPTIONAL { ?entity ioto:triggersAccessControl ?accessControl . }
+                OPTIONAL { ?entity ioto:followsSecurityPolicy ?securityPolicy . }
+            }
+        """, initNs={"ioto": ioto})
         
         results = []
         for row in self.g.query(query):
             results.append({
+                "entity": row.entity,
+                "accessControl": row.accessControl,
+                "securityPolicy": row.securityPolicy
             })
 
         end_time = time.time()

@@ -1,7 +1,6 @@
 from rdflib import Graph, Literal, BNode, Namespace, RDF, RDFS, XSD, OWL,URIRef
 # Define namespaces
 sosa = Namespace('https://www.w3.org/ns/sosa/')
-ssn = Namespace("http://www.w3.org/ns/ssn/")
 seas = Namespace('https://w3id.org/seas/')
 xsd = Namespace('http://www.w3.org/2001/XMLSchema#')
 ioto = Namespace("https://github.com/Alex23013/Ioto-Semantic-for-IoT-Environments/blob/main/iot_ontologies/ioto-protege.ttl/")
@@ -18,14 +17,7 @@ from rdflib.plugins.sparql import prepareQuery
 
 DEBUG_MODE = True
 # Constants
-measure_to_property = {
-    'temperature': seas.temperature,
-    'humidity': seas.humidity,
-    'pressure': seas.pressure,
-    # Add more mappings as needed
-}
 valid_formats = ['turtle', 'xml', 'n3', 'nt', 'json-ld']
-
 
 class OntologyEnvironment:
     def __init__(self, continue_instance,  encryption_key = b'UNxkX76p0EW7Frcx7zux7VFpp5Uxl43FLGD4SxEBppM='):
@@ -34,8 +26,8 @@ class OntologyEnvironment:
             file_path="ioto_ontology_instance.ttl"
             self.g.parse(file_path, format="turtle")
         self.g.bind("sosa", sosa)
-        self.g.bind("ssn", ssn)
         self.g.bind("ioto", ioto)
+        self.g.bind("seas", seas)
         self.g.bind("colpri", colpri)
         self.g.bind("ds4iot", ds4iot)
         # module2
@@ -50,6 +42,43 @@ class OntologyEnvironment:
         self.moderate_security_policy = ioto.ModerateDataProtectionRegulation  # Moderate policy
         self.cipher = Fernet(encryption_key)
         self.response_manager = self.create_incident_response_manager("MuseumIncidentResponseManager")
+        # module4 
+        self.thermal_energy = seas.ThermalEnergy
+        self.chemical_energy = seas.ChemicalEnergy 
+        self.light_energy =  ioto.LightEnergy
+        self.acoustic_energy = ioto.AcousticEnergy
+        self.g.add((self.thermal_energy, RDF.type, seas.EnergyForm))
+        self.g.add((self.chemical_energy, RDF.type, seas.EnergyForm))
+        self.g.add((self.light_energy, RDF.type, seas.EnergyForm))
+        self.g.add((self.acoustic_energy, RDF.type, seas.EnergyForm))
+        self.energy_form_map = {
+            "temperature": {
+                "energy_form": self.thermal_energy,
+                "control_action_desc": "Adjusts heating or cooling to regulate temperature.",
+                "sustainability_metric": "EnergyEfficiency"
+            },
+            "air_quality": {
+                "energy_form": self.chemical_energy,
+                "control_action_desc": "Activates air purifiers or ventilation to improve air quality.",
+                "sustainability_metric": "AirQualityIndex"
+            },
+            "illumination": {
+                "energy_form": self.light_energy,
+                "control_action_desc": "Adjusts lighting intensity for optimal illumination.",
+                "sustainability_metric": "LightingEfficiency"
+            },
+            "noise": {
+                "energy_form": self.acoustic_energy,
+                "control_action_desc": "Activates noise-canceling systems or sound dampening.",
+                "sustainability_metric": "AcousticComfort"
+            },
+            "smoke": {
+                "energy_form": self.chemical_energy,
+                "control_action_desc": "Triggers alarms or activates ventilation to handle smoke.",
+                "sustainability_metric": "SafetyRiskIndex"
+            }
+        }
+
 
     def get_serialized_graph(self, req_format='turtle'):
         if req_format not in valid_formats:
@@ -141,6 +170,30 @@ class OntologyEnvironment:
 
         # Link Sensor to ObservableProperty
         self.g.add((sensor_uri, sosa.observes, property_uri))
+        # Link ObservableProperty to EnergyForm if available
+        energy_data = self.energy_form_map.get(measure)
+        if energy_data:
+            energy_form = energy_data["energy_form"]
+            control_desc = energy_data["control_action_desc"]
+            sustainability_metric_name = energy_data["sustainability_metric"]
+
+            # Link ObservableProperty to EnergyForm
+            self.g.add((property_uri, ioto.associatedEnergyForm, energy_form))
+            
+            # Create ControlAction linked to this EnergyForm with description
+            control_action_uri = ioto[f"ControlAction_{sensor_name}"]
+            self.g.add((control_action_uri, RDF.type, ioto.ControlAction))
+            self.g.add((control_action_uri, RDFS.label, Literal(control_desc, datatype=XSD.string)))
+            self.g.add((control_action_uri, ioto.adjusts, energy_form))
+
+            # Create SustainabilityMetric instance
+            sustainability_metric_uri = ioto[f"{sustainability_metric_name}_{sensor_name}"]
+            self.g.add((sustainability_metric_uri, RDF.type, ioto.SustainabilityMetric))
+            self.g.add((sustainability_metric_uri, RDFS.label, Literal(sustainability_metric_name, datatype=XSD.string)))
+
+            # Link the Sensor to the SustainabilityMetric using ioto:assessesMetric
+            self.g.add((sensor_uri, ioto.assessesMetric, sustainability_metric_uri))
+
 
         # Link Sensor to DataFormat
         format_uri = ioto[data_format]
@@ -200,6 +253,7 @@ class OntologyEnvironment:
     def add_observation(self, data):
         sensor_name = data.get('sensor')
         sensor_value = data.get('value')
+        evaluation_value = data.get('evaluation')
         
         # Get sensor URI
         sensor_uri = ioto[sensor_name]
@@ -213,7 +267,8 @@ class OntologyEnvironment:
         }}
         """
         results = self.g.query(query, initNs={'sosa': sosa, 'ioto': ioto})
-        print("results of SPARQL query")
+        if DEBUG_MODE:
+            print("results of SPARQL query")
         for row in self.g.query(query):
             results.append({
                 "observed_property": row.observed_property
@@ -222,6 +277,7 @@ class OntologyEnvironment:
         observed_property = None
         for row in results:
             observed_property = row.observed_property
+
         if not observed_property:
             return 'Observable property not found', 404
 
@@ -248,7 +304,59 @@ class OntologyEnvironment:
         now = datetime.now().isoformat()
         self.g.add((observation_uri, sosa.resultTime, Literal(now, datatype=XSD.dateTime)))
         self.update_iot_device_behavior(sensor_name, sensor_value, num_obs)
+        observed_property_name = observed_property.split("/")[-1]
+        self.add_evaluation(observed_property_name ,observed_property, evaluation_value, f"{sensor_name}_observation_{num_obs + 1}", sensor_name)
         return f'Observation added: {observation_uri}', 201
+    
+    def add_evaluation(self,observed_property_name, observed_property_uri, evaluation_value, observation_name, sensor_name):
+        """
+        Adds a SEAS Evaluation linked to an ObservableProperty, with an evaluated value.
+        Expects: observed_property_uri, evaluation_value, observation_name
+        """
+        # Create URIs
+        evaluation_uri = ioto[f"Evaluation_{observed_property_name}"]
+        evaluation_label = f"Evaluation for {observation_name}"
+        print("ADD Evaluation method")
+        print("evaluation_uri",evaluation_uri)
+        print("evaluation_label",evaluation_label)
+
+        # Add Evaluation as a seas:Evaluation instance
+        self.g.add((evaluation_uri, RDF.type, seas.Evaluation))
+        self.g.add((evaluation_uri, RDFS.label, Literal(evaluation_label, datatype=XSD.string)))
+
+        # Link Evaluation to the Property
+        #TODO:check why i am having ns1: in the result instead of seas:
+        self.g.add((observed_property_uri, seas.evaluation, evaluation_uri))
+        self.g.add((evaluation_uri, seas.evaluationOf, observed_property_uri))
+
+        # Add the evaluated value (can be a qualitative or quantitative literal)
+        self.g.add((evaluation_uri, seas.evaluatedValue, Literal(evaluation_value, datatype=XSD.string)))
+        
+        # SPARQL to fetch the sustainability metric related to the sensor using ioto:assessesMetric
+        query = prepareQuery("""
+            SELECT ?sustainabilityMetric
+            WHERE {
+                ?sensor a sosa:Sensor ;
+                        rdfs:label ?label ;
+                        ioto:assessesMetric ?sustainabilityMetric .
+                FILTER(str(?label) = "illuminationSensor01")
+            }            
+        """, initNs={"ioto": ioto, "sosa": sosa})
+        results = []
+        for row in self.g.query(query):
+            results.append({      
+                "sustainabilityMetric": row.sustainabilityMetric     
+            })
+        print("results metrics")
+        print(results)
+        if results:
+            sustainability_metric_uri = results[0].get('sustainabilityMetric')
+            self.g.add((evaluation_uri, ioto.relatesToMetric, sustainability_metric_uri))
+            print(f"Linked to sustainability metric: {sustainability_metric_uri}")
+        else:
+            print("Sustainability metric not found")
+
+        return f"Evaluation for {observed_property_name} added.", 200
     
     def update_iot_device_behavior(self, sensor_name, sensor_value, num_obs):
         # Fetch the IoT Device linked to the sensor

@@ -7,6 +7,9 @@ ioto = Namespace("https://github.com/Alex23013/Ioto-Semantic-for-IoT-Environment
 # module2
 colpri = Namespace("https://github/ioto/EnhacedOntology4IoT/colpri#")
 ds4iot = Namespace("https://github/ioto/EnhacedOntology4IoT/ds4iot#")
+# module5
+ssn = Namespace("http://www.w3.org/ns/ssn/")
+
 import base64
 from cryptography.fernet import Fernet
 from flask import jsonify
@@ -30,8 +33,14 @@ class OntologyEnvironment:
         self.g.bind("seas", seas)
         self.g.bind("colpri", colpri)
         self.g.bind("ds4iot", ds4iot)
+        self.g.bind("ssn", ssn)
         # module2
-        self.data_contoller_uri = self.create_data_controller("MuseumAdmin", "VisitorDataProcessing")
+        self.data_contoller_uri = self.create_data_controller(
+                    controller_name="DataController01",
+                    purpose="VisitorDataProcessing",
+                    responsability_steps=["DataCollection", "DataProcessing"],
+                    responsability_things=["Consent", "PrivacyPolicyEvaluation"]
+                )
         self.insert_identity_data_concept()
         self.museum_admin = ioto.MuseumAdmin
         # module3
@@ -78,7 +87,19 @@ class OntologyEnvironment:
                 "sustainability_metric": "SafetyRiskIndex"
             }
         }
+        # module5
+        self.init_iot_environment_with_ethics()
+        self.default_privacy_policy = self.create_privacy_policy(
+            "GeneralPrivacyPolicy",
+            ["Data_anonymization", "User_consent_required"],
+            ["Selling_data_to_third_parties", "Storing_data_indefinitely"]
+        )
 
+    def init_iot_environment_with_ethics(self):
+        system_uri = ioto["IoTEnvironment"]
+        self.g.add((system_uri, RDF.type, ssn.System))
+        self.g.add((system_uri, ioto.hasEthicMode, ioto.Stringent))
+        print("IoT Environment initialized with EthicMode: Stringent (Class)")
 
     def get_serialized_graph(self, req_format='turtle'):
         if req_format not in valid_formats:
@@ -447,7 +468,7 @@ class OntologyEnvironment:
 
     
     # module2
-    def create_data_controller(self, controller_name, purpose):
+    def create_data_controller(self, controller_name, purpose, responsability_steps=None, responsability_things=None):
         """
         Creates a DataController with a specified purpose.
         """
@@ -465,8 +486,54 @@ class OntologyEnvironment:
         #Add concepts for consent
         self.g.add((colpri.GivenConsent, RDFS.subClassOf, ioto.Consent))
         self.g.add((colpri.UngivenConsent, RDFS.subClassOf, ioto.Consent))
-        print(f"DataController '{controller_name}' created with purpose '{purpose}'.")
+
+        # Add Fairness as an EthicCategory linked to the DataController
+        fairness_uri = ioto.Fairness
+        self.g.add((fairness_uri, RDF.type, ioto.EthicCategory))
+        self.g.add((controller_uri, ioto.hasEthicCategory, fairness_uri))
+
+        self.create_decision(
+            decision_name="AccessControlDecision",
+            decision_description="A decision on whether to grant or deny access to IoT data based on user consent.",
+            controller_name=controller_name
+        )
+        
+        if responsability_steps:
+            for step in responsability_steps:
+                step_uri = colpri[step]  # Example: colpri:DataCollection
+                self.g.add((step_uri, RDF.type, colpri[step]))
+                self.g.add((controller_uri, ioto.takesResponsabilityForStep, step_uri))
+
+        # Add responsibilities for things
+        if responsability_things:
+            for thing in responsability_things:
+                thing_uri = colpri[thing] if thing in ["Consent", "Disclosure", "Recommendation"] else ioto[thing]
+                self.g.add((thing_uri, RDF.type, colpri[thing] if thing in ["Consent", "Disclosure", "Recommendation"] else ioto[thing]))
+                self.g.add((controller_uri, ioto.takesResponsabilityForThing, thing_uri))
+
+        print(f"DataController '{controller_name}' created with purpose '{purpose}' and responsibilities.")
         return controller_uri
+    
+    def create_decision(self, decision_name, decision_description, controller_name):
+        """
+        Creates a Decision and assigns responsability to a DataController.
+
+        :param decision_name: Name of the decision (e.g., "AccessControlDecision")
+        :param decision_description: Description of the decision
+        :param controller_name: Name of the Data Controller responsible for this decision
+        """
+        decision_uri = ioto[decision_name]
+        controller_uri = ioto[controller_name]
+
+        # Create the Decision instance
+        self.g.add((decision_uri, RDF.type, ioto.Decision))
+        self.g.add((decision_uri, RDFS.label, Literal(decision_name)))
+        self.g.add((decision_uri, RDFS.comment, Literal(decision_description)))
+
+        # Link the Decision to the DataController
+        self.g.add((controller_uri, ioto.takesResponsabilityForThing, decision_uri))
+
+        print(f"Decision '{decision_name}' created and assigned to Data Controller '{controller_name}'.")
     
     def create_crypto_manager_and_encryption_algorithm(self, manager_name):
         crypto_manager_uri = ds4iot[manager_name]
@@ -485,6 +552,35 @@ class OntologyEnvironment:
         self.g.add((manager_uri, RDFS.label, Literal(manager_name, datatype=XSD.string)))
         print(f"IncidentResponseManager '{manager_name}' created.")
         return manager_uri
+    
+    def create_privacy_policy(self, policy_name, acceptable_uses, unacceptable_uses):
+        """
+        Defines a privacy policy with acceptable and unacceptable uses.
+        
+        :param policy_name: Name of the privacy policy
+        :param acceptable_uses: List of acceptable data usage rules
+        :param unacceptable_uses: List of unacceptable data usage rules
+        """
+        policy_uri = colpri[policy_name]
+        # Create PrivacyPolicy instance
+        self.g.add((policy_uri, RDF.type, colpri.PrivacyPolicy))
+        self.g.add((policy_uri, RDFS.label, Literal(policy_name)))
+
+        # Define Acceptable Uses
+        for use in acceptable_uses:
+            use_uri = ioto[f"AcceptableUse{use}"]
+            self.g.add((use_uri, RDF.type, ioto.DataUsageRule))
+            self.g.add((use_uri, RDFS.label, Literal(use)))
+            self.g.add((policy_uri, ioto.definesAcceptableUse, use_uri))
+
+        # Define Unacceptable Uses
+        for use in unacceptable_uses:
+            use_uri = ioto[f"UnacceptableUse{use}"]
+            self.g.add((use_uri, RDF.type, ioto.DataUsageRule))
+            self.g.add((use_uri, RDFS.label, Literal(use)))
+            self.g.add((policy_uri, ioto.definesUnacceptableUse, use_uri))
+        print(f"Privacy Policy '{policy_name}' created with defined acceptable and unacceptable uses.")
+        return policy_uri
     
     def insert_identity_data_concept(self):
         """
@@ -507,6 +603,8 @@ class OntologyEnvironment:
         self.g.add((colpri.IdentityData, RDFS.isDefinedBy, colpri._URI))
 
         return "IdentityData concept with CryptoManager added to ontology."
+    
+
 
     def encrypt_data(self, plaintext: str) -> str:
         """Encrypts the given plaintext using AES-256."""
@@ -521,7 +619,7 @@ class OntologyEnvironment:
             self.add_personal(data) 
         return 'visitor added', 201
     
-    def insert_personal_data(self, prop, visitor_id, value, is_sensitive, encryption_method_uri = None):
+    def insert_personal_data(self, prop, visitor_id, value, is_sensitive):
         """
         Inserts personal data as either SensitivePersonalData (encrypted) or NonSensitivePersonalData.
         
@@ -545,6 +643,7 @@ class OntologyEnvironment:
         else:
             self.g.add((data_uri, RDF.type, colpri.NonSensitivePersonalData))
             self.g.add((data_uri, ioto.followsSecurityPolicy, self.default_security_policy))
+            self.g.add((data_uri, ioto.followsPrivacyPolicy, self.default_privacy_policy))
         return data_uri
 
     def add_visitor(self, visitor_data):
@@ -570,7 +669,7 @@ class OntologyEnvironment:
         for prop, is_sensitive in personal_data_properties.items():
             value = visitor_data.get(prop)
             if value:
-                self.insert_personal_data(prop, visitor_id, value, is_sensitive, self.encryption_method_uri)
+                self.insert_personal_data(prop, visitor_id, value, is_sensitive)
 
         return f"Visitor Consent ({'Given' if consent_given else 'Ungiven'}) and IdentityData added for visitor {visitor_id}.", 201
 

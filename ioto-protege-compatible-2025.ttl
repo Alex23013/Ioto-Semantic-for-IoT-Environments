@@ -228,19 +228,6 @@ sosa:observes rdf:type owl:ObjectProperty ;
               rdfs:label "observes"@en ;
               skos:definition "Relation between a Sensor and an ObservableProperty that it is capable of sensing."@en .
 
-
-###  http://www.w3.org/ns/sosa/phenomenonTime
-sosa:phenomenonTime rdf:type owl:ObjectProperty ;
-                    schema:domainIncludes sosa:Actuation ,
-                                          sosa:Observation ,
-                                          sosa:Sampling ;
-                    schema:rangeIncludes time:TemporalEntity ;
-                    rdfs:comment "The time that the Result of an Observation, Actuation or Sampling applies to the FeatureOfInterest. Not necessarily the same as the resultTime. May be an Interval or an Instant, or some other compound TemporalEntity."@en ;
-                    rdfs:isDefinedBy sosa: ;
-                    rdfs:label "phenomenon time"@en ;
-                    skos:definition "The time that the Result of an Observation, Actuation or Sampling applies to the FeatureOfInterest. Not necessarily the same as the resultTime. May be an Interval or an Instant, or some other compound TemporalEntity."@en .
-
-
 ###  https://github/ioto/EnhacedOntology4IoT/canBeTreatedAs
 ioto:canBeTreatedAs rdf:type owl:ObjectProperty ;
                     rdfs:domain colpri:NonSensitivePersonalData ;
@@ -870,6 +857,12 @@ colpri:ApplicationFunctionning rdf:type owl:Class ;
 ds4iot:AuthenticationProvider rdf:type owl:Class ;
                             rdfs:subClassOf ioto:SecurityCommunityMember ;
                             rdfs:isDefinedBy ds4iot: .
+                            
+###  https://github/ioto/EnhacedOntology4IoT/IncidentResponseManager
+ioto:IncidentResponseManager rdf:type owl:Class ;
+                            rdfs:subClassOf ioto:SecurityCommunityMember ;
+                            rdfs:label "Incident Response Manager" ;
+                            rdfs:comment "Handles threat responses by managing incidents in the IoT system." .
 
 
 ###  https://github/ioto/EnhacedOntology4IoT/AuthenticationProviderDomain
@@ -1183,6 +1176,14 @@ colpri:IdentityData rdf:type owl:Class ;
                                     owl:someValuesFrom ds4iot:EncryptedData
                                   ] ;
                   rdfs:isDefinedBy colpri: .
+
+### Define encryptedValue Property
+ioto:encryptedValue rdf:type owl:DatatypeProperty ;
+                  rdfs:domain colpri:IdentityData ;
+                  rdfs:range xsd:string ;
+                  rdfs:label "Encrypted Value" ;
+                  rdfs:comment "Stores an encrypted version of identity data to ensure privacy." ;
+                  rdfs:isDefinedBy ioto: .
 
 
 ###  https://github/ioto/EnhacedOntology4IoT/Mandatory
@@ -2478,10 +2479,10 @@ ioto:usesEncryptionAlgorithm rdf:type owl:ObjectProperty ;
 
 ### Define followsSecurityPolicy Relationship
 ioto:followsSecurityPolicy rdf:type owl:ObjectProperty ;
-                             rdfs:domain ds4iot:EncryptedData ;
+                             rdfs:domain colpri:PersonalData ;
                              rdfs:range ioto:SecurityPolicy ;
                              rdfs:label "follows security policy" ;
-                             rdfs:comment "Indicates which security policies are applied to encrypted data." .
+                             rdfs:comment "Indicates which security policies are applied to personal data." .
                     
 ###Anomaly detection
 ### Define Anomaly Class
@@ -2522,6 +2523,14 @@ ioto:detectsAnomaly rdf:type owl:ObjectProperty ;
                     rdfs:label "detects anomaly" ;
                     rdfs:comment "Indicates that a security monitor has detected an anomaly." .
                     
+### ioto:detectedBy (Inverse of ioto:detectsAnomaly)
+ioto:detectedBy rdf:type owl:ObjectProperty ;
+                owl:inverseOf ioto:detectsAnomaly ;
+                rdfs:domain ioto:Anomaly ;
+                rdfs:range ioto:SecurityMonitor ;
+                rdfs:label "detected by" ;
+                rdfs:comment "Indicates the security monitor that detected the anomaly." ;
+                rdfs:isDefinedBy ioto: .                    
 
 
 
@@ -2542,7 +2551,7 @@ ioto:requiresResponse rdf:type owl:ObjectProperty ;
                       rdfs:isDefinedBy ioto: .
 
 ioto:handlesIncident rdf:type owl:ObjectProperty ;
-                     rdfs:domain ioto:SecurityCommunityMember ;
+                     rdfs:domain ioto:IncidentResponseManager ;
                      rdfs:range ioto:ThreatResponse ;
                      rdfs:label "handles incident" ;
                      rdfs:comment "Represents the relationship where a security member handles a threat response." ;
@@ -2591,6 +2600,24 @@ ioto:representsAbnormalBehavior rdf:type owl:ObjectProperty ;
                                 rdfs:isDefinedBy ioto: .
                                 
 ################# module 4
+ioto:LightEnergy rdf:type owl:Class ;
+    rdfs:subClassOf seas:EnergyForm ;
+    rdfs:comment "Energy form representing the light measured by illumination sensors."@en ;
+    rdfs:isDefinedBy ioto: .
+
+ioto:AcousticEnergy rdf:type owl:Class ;
+    rdfs:subClassOf seas:EnergyForm ;
+    rdfs:comment "The energy associated with mechanical waves in a medium, typically air, perceived as sound."@en ;
+    rdfs:isDefinedBy seas: .
+    
+### ioto:associatedEnergyForm
+ioto:associatedEnergyForm rdf:type owl:ObjectProperty ;
+    rdfs:domain sosa:ObservableProperty ;
+    rdfs:range seas:EnergyForm ;
+    rdfs:label "associated energy form" ;
+    rdfs:comment "Links a sensor to the physical energy form that enables the observation, such as heat, light, sound, or chemical energy. This complements but differs from 'sosa:observes' which targets the measured property." ;
+    rdfs:isDefinedBy ioto: .
+    
 ioto:ControlAction rdf:type owl:Class ;
                    rdfs:label "Control Action" ;
                    rdfs:comment "Represents an action taken to adjust environmental conditions in an IoT system." ;
@@ -2609,6 +2636,14 @@ ioto:SustainabilityMetric rdf:type owl:Class ;
                           rdfs:label "Sustainability Metric" ;
                           rdfs:comment "Represents a metric used to evaluate sustainability-related factors, such as energy efficiency, air quality, or CO2 emissions." ;
                           rdfs:isDefinedBy ioto: .
+                          
+### Property: assessesMetric (Links Sensors to Sustainability Metrics)
+ioto:assessesMetric rdf:type owl:ObjectProperty ;
+                    rdfs:domain sosa:Sensor ;
+                    rdfs:range ioto:SustainabilityMetric ;
+                    rdfs:label "assesses metric" ;
+                    rdfs:comment "Links a sensor to the sustainability metric it helps assess." ;
+                    rdfs:isDefinedBy ioto: .
 
 ### Property: relatesToMetric (Links Evaluations to Sustainability Metrics)
 ioto:relatesToMetric rdf:type owl:ObjectProperty ;
@@ -2632,6 +2667,33 @@ ioto:Decision rdf:type owl:Class ;
               rdfs:label "Decision" ;
               rdfs:comment "Represents an IoT-related decision for which a Data Controller is responsible." ;
               rdfs:isDefinedBy ioto: .
+              
+### Define followsPrivacyPolicy Relationship
+ioto:followsPrivacyPolicy rdf:type owl:ObjectProperty ;
+                          rdfs:domain colpri:PersonalData ;
+                          rdfs:range colpri:PrivacyPolicy ;
+                          rdfs:label "follows privacy policy" ;
+                          rdfs:comment "Indicates which privacy policies are applied to personal data." .
+
+              
+### Object Properties to Define Acceptable and Unacceptable Uses
+ioto:definesAcceptableUse rdf:type owl:ObjectProperty ;
+                          rdfs:domain colpri:PrivacyPolicy ;
+                          rdfs:range ioto:DataUsageRule ;
+                          rdfs:label "defines acceptable use" ;
+                          rdfs:comment "Links a privacy policy to a rule defining acceptable data usage." .
+
+ioto:definesUnacceptableUse rdf:type owl:ObjectProperty ;
+                            rdfs:domain colpri:PrivacyPolicy ;
+                            rdfs:range ioto:DataUsageRule ;
+                            rdfs:label "defines unacceptable use" ;
+                            rdfs:comment "Links a privacy policy to a rule defining unacceptable data usage." .
+
+### Class for Data Usage Rules
+ioto:DataUsageRule rdf:type owl:Class ;
+                   rdfs:label "Data Usage Rule" ;
+                   rdfs:comment "Defines a rule specifying acceptable or unacceptable usage of IoT data." .
+
               
 #### Room distribution
 # Define ioto:Room as a class

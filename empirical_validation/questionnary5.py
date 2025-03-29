@@ -26,11 +26,18 @@ class QuestionnaryModule5:
     def mod5_qa(self):
         start_time = time.time()
         query = prepareQuery("""
-        """, initNs={"ioto": ioto, "colpri": colpri})
+            SELECT ?system ?ethicCategory ?ethicMode
+            WHERE {
+            ?system a ssn:System ;
+                    ioto:hasEthicMode ?ethicMode .
+            }
+        """, initNs={"ioto": ioto, "ssn": ssn})
 
         results = []
         for row in self.g.query(query):
             results.append({
+                "system": row.system,
+                "ethicMode": row.ethicMode
             })
         end_time = time.time()
         execution_time = end_time - start_time
@@ -41,11 +48,20 @@ class QuestionnaryModule5:
     def mod5_qb(self):
         start_time = time.time()
         query = prepareQuery("""
-        """, initNs={"colpri": colpri, "ioto": ioto, "ds4iot": ds4iot, "rdfs": RDFS})
+            SELECT ?dataController ?responsabilityStep ?responsabilityThing
+            WHERE {
+            ?dataController a ioto:DataController ;
+                            ioto:takesResponsabilityForStep ?responsabilityStep ;
+                            ioto:takesResponsabilityForThing ?responsabilityThing .
+            }
+        """, initNs={"ioto": ioto})
         
         results = []
         for row in self.g.query(query):
             results.append({
+                "dataController": row.dataController,
+                "responsabilityStep": row.responsabilityStep,
+                "responsabilityThing": row.responsabilityThing
             })
 
         end_time = time.time()
@@ -58,11 +74,19 @@ class QuestionnaryModule5:
     def mod5_qc(self):
         start_time = time.time()
         query = prepareQuery("""
-            
-        """, initNs={"colpri": colpri})
+            SELECT ?policy ?acceptableUse ?unacceptableUse
+            WHERE {
+                ?policy a colpri:PrivacyPolicy .
+                OPTIONAL { ?policy ioto:definesAcceptableUse ?acceptableUse }
+                OPTIONAL { ?policy ioto:definesUnacceptableUse ?unacceptableUse }
+            }
+        """, initNs={"colpri": colpri, "ioto": ioto})
         results = []
         for row in self.g.query(query):
-            results.append({              
+            results.append({          
+                "policy": row.policy,
+                "acceptableUse": row.acceptableUse,
+                "unacceptableUse": row.unacceptableUse    
             })
         end_time = time.time()
         execution_time = end_time - start_time
@@ -73,11 +97,26 @@ class QuestionnaryModule5:
     def mod5_qd(self):
         start_time = time.time()
         query = prepareQuery("""
-            
-        """, initNs={"colpri": colpri})
+        SELECT ?system ?ethicCategory ?ethicMode ?responsibleEntity ?decision
+        WHERE {
+            ?system a ssn:System ;
+                    ioto:hasEthicMode ?ethicMode .
+
+            ?responsibleEntity a ioto:DataController ;
+                            ioto:hasEthicCategory ?ethicCategory ;
+                            ioto:takesResponsabilityForThing ?decision .
+
+            ?decision rdf:type ioto:Decision .
+        }
+        """, initNs={"colpri": colpri, "ioto": ioto, "rdf": RDF})
         results = []
         for row in self.g.query(query):
-            results.append({              
+            results.append({     
+                "system": row.system,
+                "ethicCategory": row.ethicCategory,
+                "ethicMode": row.ethicMode,
+                "responsibleEntity": row.responsibleEntity,
+                "decision": row.decision         
             })
         end_time = time.time()
         execution_time = end_time - start_time

@@ -1,0 +1,308 @@
+@prefix colpri: <https://github/ioto/EnhacedOntology4IoT/colpri#> .
+@prefix ds4iot: <https://github/ioto/EnhacedOntology4IoT/ds4iot#> .
+@prefix ioto: <https://github.com/Alex23013/Ioto-Semantic-for-IoT-Environments/blob/main/iot_ontologies/ioto-protege.ttl/> .
+@prefix seas: <https://w3id.org/seas/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix sosa1: <https://www.w3.org/ns/sosa/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+
+ioto:ControlAction_airQualitySensor01 a ioto:ControlAction ;
+    rdfs:label "Activates air purifiers or ventilation to improve air quality."^^xsd:string ;
+    ioto:adjusts seas:ChemicalEnergy .
+
+ioto:ControlAction_illuminationSensor01 a ioto:ControlAction ;
+    rdfs:label "Adjusts lighting intensity for optimal illumination."^^xsd:string ;
+    ioto:adjusts ioto:LightEnergy .
+
+ioto:ControlAction_noiseSensor01 a ioto:ControlAction ;
+    rdfs:label "Activates noise-canceling systems or sound dampening."^^xsd:string ;
+    ioto:adjusts ioto:AcousticEnergy .
+
+ioto:ControlAction_smokeSensor01 a ioto:ControlAction ;
+    rdfs:label "Triggers alarms or activates ventilation to handle smoke."^^xsd:string ;
+    ioto:adjusts seas:ChemicalEnergy .
+
+ioto:ControlAction_tempSensor01 a ioto:ControlAction ;
+    rdfs:label "Adjusts heating or cooling to regulate temperature."^^xsd:string ;
+    ioto:adjusts seas:ThermalEnergy .
+
+ioto:EncryptionMethod_for_IoT_instance a ioto:EncryptionMethod ;
+    ioto:usesEncryptionAlgorithm ioto:AES256 .
+
+ioto:MuseumAdmin a ioto:DataController ;
+    rdfs:label "MuseumAdmin"^^xsd:string ;
+    ioto:definesPurpose ioto:VisitorDataProcessing .
+
+ioto:MuseumIncidentResponseManager a ioto:IncidentResponseManager ;
+    rdfs:label "MuseumIncidentResponseManager"^^xsd:string ;
+    ioto:handlesIncident ioto:ThreatResponse_tempSensor01_1 .
+
+ioto:SecurityMonitor_for_LightSensor a ioto:SecurityMonitor ;
+    rdfs:label "SecurityMonitor for LightSensor"^^xsd:string ;
+    ioto:monitors ioto:LightSensor .
+
+ioto:SecurityMonitor_for_NoiseDetector a ioto:SecurityMonitor ;
+    rdfs:label "SecurityMonitor for NoiseDetector"^^xsd:string ;
+    ioto:monitors ioto:NoiseDetector .
+
+ioto:SecurityMonitor_for_SmartAirQuality a ioto:SecurityMonitor ;
+    rdfs:label "SecurityMonitor for SmartAirQuality"^^xsd:string ;
+    ioto:monitors ioto:SmartAirQuality .
+
+ioto:SecurityMonitor_for_SmokeDetector a ioto:SecurityMonitor ;
+    rdfs:label "SecurityMonitor for SmokeDetector"^^xsd:string ;
+    ioto:monitors ioto:SmokeDetector .
+
+ioto:tempSensor01_observation_1 a sosa1:Observation ;
+    sosa1:hasSimpleResult "19.41"^^xsd:float ;
+    sosa1:madeBySensor ioto:tempSensor01 ;
+    sosa1:observedProperty ioto:temperature ;
+    sosa1:resultTime "2025-03-24T02:52:32.407548"^^xsd:dateTime .
+
+ioto:tempSensor01_observation_2 a sosa1:Observation ;
+    sosa1:hasSimpleResult "23.73"^^xsd:float ;
+    sosa1:madeBySensor ioto:tempSensor01 ;
+    sosa1:observedProperty ioto:temperature ;
+    sosa1:resultTime "2025-03-24T02:52:35.475106"^^xsd:dateTime .
+
+ioto:tempSensor01_observation_3 a sosa1:Observation ;
+    sosa1:hasSimpleResult "19.19"^^xsd:float ;
+    sosa1:madeBySensor ioto:tempSensor01 ;
+    sosa1:observedProperty ioto:temperature ;
+    sosa1:resultTime "2025-03-24T02:52:38.446222"^^xsd:dateTime .
+
+colpri:GivenConsent rdfs:subClassOf ioto:Consent .
+
+colpri:IdentityData a owl:Class ;
+    rdfs:isDefinedBy colpri:_URI ;
+    rdfs:subClassOf [ a owl:Restriction ;
+            owl:onProperty ioto:mustBeTreatedAs ;
+            owl:someValuesFrom ds4iot:EncryptedData ],
+        colpri:SensitivePersonalData .
+
+colpri:UngivenConsent rdfs:subClassOf ioto:Consent .
+
+ds4iot:Museum_CryptoManager a ds4iot:CryptoManager ;
+    rdfs:label "Museum_CryptoManager"^^xsd:string .
+
+ioto:AcousticComfort_noiseSensor01 a ioto:SustainabilityMetric ;
+    rdfs:label "AcousticComfort"^^xsd:string .
+
+ioto:AirQualityIndex_airQualitySensor01 a ioto:SustainabilityMetric ;
+    rdfs:label "AirQualityIndex"^^xsd:string .
+
+ioto:Anomaly_tempSensor01_1 a ioto:Anomaly ;
+    ioto:detectedBy ioto:SecurityMonitor_for_SmartThermostat ;
+    ioto:representsAbnormalBehavior ioto:AbnormalBehavior ;
+    ioto:requiresResponse ioto:ThreatResponse_tempSensor01_1 ;
+    ioto:triggersAlert ioto:SecurityEvent_tempSensor01_1 .
+
+ioto:Bluetooth a ioto:CommunicationProtocol ;
+    rdfs:label "Bluetooth"^^xsd:string .
+
+ioto:EclipseDitto a ioto:IoTStandard ;
+    rdfs:label "EclipseDitto"^^xsd:string .
+
+ioto:EnergyEfficiency_tempSensor01 a ioto:SustainabilityMetric ;
+    rdfs:label "EnergyEfficiency"^^xsd:string .
+
+ioto:Evaluation_temperature a seas:Evaluation ;
+    rdfs:label "Evaluation for tempSensor01_observation_1"^^xsd:string,
+        "Evaluation for tempSensor01_observation_2"^^xsd:string,
+        "Evaluation for tempSensor01_observation_3"^^xsd:string ;
+    ioto:relatesToMetric ioto:LightingEfficiency_illuminationSensor01 ;
+    seas:evaluatedValue "Normal"^^xsd:string ;
+    seas:evaluationOf ioto:temperature .
+
+ioto:FIWARE a ioto:IoTStandard ;
+    rdfs:label "FIWARE"^^xsd:string .
+
+ioto:LightSensor a ioto:IoTDevice,
+        ioto:ModernDevice ;
+    rdfs:label "LightSensor"^^xsd:string ;
+    ioto:followsSecurityPolicy ioto:ModerateDataProtectionRegulation ;
+    ioto:generatesData ioto:LightSensor_DataDomain ;
+    ioto:hasSensor ioto:illuminationSensor01 ;
+    ioto:hasStandard ioto:LwM2M ;
+    ioto:hasThreshold "300.0"^^xsd:float ;
+    ioto:locatedInRoom ioto:exhibition1 ;
+    ioto:triggersAccessControl ds4iot:LightSensor_RBAC ;
+    ioto:usesProtocol ioto:Zigbee .
+
+ioto:LightSensor_DataDomain a ioto:DataDomain ;
+    rdfs:label "LightSensor Data Domain"^^xsd:string ;
+    ds4iot:hasAccessControl ds4iot:LightSensor_RBAC .
+
+ioto:LoRaWAN a ioto:CommunicationProtocol ;
+    rdfs:label "LoRaWAN"^^xsd:string .
+
+ioto:LwM2M a ioto:IoTStandard ;
+    rdfs:label "LwM2M"^^xsd:string .
+
+ioto:NoiseDetector a ioto:IoTDevice,
+        ioto:ModernDevice ;
+    rdfs:label "NoiseDetector"^^xsd:string ;
+    ioto:followsSecurityPolicy ioto:ModerateDataProtectionRegulation ;
+    ioto:generatesData ioto:NoiseDetector_DataDomain ;
+    ioto:hasSensor ioto:noiseSensor01 ;
+    ioto:hasStandard ioto:FIWARE ;
+    ioto:hasThreshold "70.0"^^xsd:float ;
+    ioto:locatedInRoom ioto:exhibition1 ;
+    ioto:triggersAccessControl ds4iot:NoiseDetector_RBAC ;
+    ioto:usesProtocol ioto:LoRaWAN .
+
+ioto:NoiseDetector_DataDomain a ioto:DataDomain ;
+    rdfs:label "NoiseDetector Data Domain"^^xsd:string ;
+    ds4iot:hasAccessControl ds4iot:NoiseDetector_RBAC .
+
+ioto:SafetyRiskIndex_smokeSensor01 a ioto:SustainabilityMetric ;
+    rdfs:label "SafetyRiskIndex"^^xsd:string .
+
+ioto:SecurityEvent_tempSensor01_1 a ioto:SecurityEvent .
+
+ioto:SecurityMonitor_for_SmartThermostat a ioto:SecurityMonitor ;
+    rdfs:label "SecurityMonitor for SmartThermostat"^^xsd:string ;
+    ioto:detectsAnomaly ioto:Anomaly_tempSensor01_1 ;
+    ioto:monitors ioto:SmartThermostat .
+
+ioto:SmartAirQuality a ioto:IoTDevice,
+        ioto:ModernDevice ;
+    rdfs:label "SmartAirQuality"^^xsd:string ;
+    ioto:followsSecurityPolicy ioto:ModerateDataProtectionRegulation ;
+    ioto:generatesData ioto:SmartAirQuality_DataDomain ;
+    ioto:hasSensor ioto:airQualitySensor01 ;
+    ioto:hasStandard ioto:OneM2M ;
+    ioto:hasThreshold "100.0"^^xsd:float ;
+    ioto:locatedInRoom ioto:exhibition1 ;
+    ioto:triggersAccessControl ds4iot:SmartAirQuality_RBAC ;
+    ioto:usesProtocol ioto:CoAP .
+
+ioto:SmartAirQuality_DataDomain a ioto:DataDomain ;
+    rdfs:label "SmartAirQuality Data Domain"^^xsd:string ;
+    ds4iot:hasAccessControl ds4iot:SmartAirQuality_RBAC .
+
+ioto:SmartThermostat a ioto:IoTDevice,
+        ioto:ModernDevice ;
+    rdfs:label "SmartThermostat"^^xsd:string ;
+    ioto:followsSecurityPolicy ioto:ModerateDataProtectionRegulation ;
+    ioto:generatesData ioto:SmartThermostat_DataDomain ;
+    ioto:hasBehavior ioto:NormalBehavior ;
+    ioto:hasCurrentValue "19.19"^^xsd:float ;
+    ioto:hasSensor ioto:tempSensor01 ;
+    ioto:hasStandard ioto:OneM2M ;
+    ioto:hasThreshold "20.0"^^xsd:float ;
+    ioto:locatedInRoom ioto:exhibition1 ;
+    ioto:triggersAccessControl ds4iot:SmartThermostat_RBAC ;
+    ioto:usesProtocol ioto:CoAP .
+
+ioto:SmartThermostat_DataDomain a ioto:DataDomain ;
+    rdfs:label "SmartThermostat Data Domain"^^xsd:string ;
+    ds4iot:hasAccessControl ds4iot:SmartThermostat_RBAC .
+
+ioto:SmokeDetector a ioto:IoTDevice,
+        ioto:LegacyDevice ;
+    rdfs:label "SmokeDetector"^^xsd:string ;
+    ioto:followsSecurityPolicy ioto:ModerateDataProtectionRegulation ;
+    ioto:generatesData ioto:SmokeDetector_DataDomain ;
+    ioto:hasSensor ioto:smokeSensor01 ;
+    ioto:hasStandard ioto:EclipseDitto ;
+    ioto:hasThreshold "1.0"^^xsd:float ;
+    ioto:locatedInRoom ioto:exhibition1 ;
+    ioto:triggersAccessControl ds4iot:SmokeDetector_RBAC ;
+    ioto:usesProtocol ioto:Bluetooth .
+
+ioto:SmokeDetector_DataDomain a ioto:DataDomain ;
+    rdfs:label "SmokeDetector Data Domain"^^xsd:string ;
+    ds4iot:hasAccessControl ds4iot:SmokeDetector_RBAC .
+
+ioto:VisitorDataProcessing a ioto:Purpose .
+
+ioto:XML a ioto:DataFormat .
+
+ioto:Zigbee a ioto:CommunicationProtocol ;
+    rdfs:label "Zigbee"^^xsd:string .
+
+ioto:airQualitySensor01 a sosa1:Sensor ;
+    rdfs:label "airQualitySensor01"^^xsd:string ;
+    ioto:assessesMetric ioto:AirQualityIndex_airQualitySensor01 ;
+    ioto:usesDataFormat ioto:JSON ;
+    sosa1:observes ioto:air_quality .
+
+ioto:air_quality a sosa1:ObservableProperty ;
+    rdfs:label "air_quality"^^xsd:string ;
+    ioto:associatedEnergyForm seas:ChemicalEnergy .
+
+ioto:illumination a sosa1:ObservableProperty ;
+    rdfs:label "illumination"^^xsd:string ;
+    ioto:associatedEnergyForm ioto:LightEnergy .
+
+ioto:illuminationSensor01 a sosa1:Sensor ;
+    rdfs:label "illuminationSensor01"^^xsd:string ;
+    ioto:assessesMetric ioto:LightingEfficiency_illuminationSensor01 ;
+    ioto:usesDataFormat ioto:JSON ;
+    sosa1:observes ioto:illumination .
+
+ioto:noise a sosa1:ObservableProperty ;
+    rdfs:label "noise"^^xsd:string ;
+    ioto:associatedEnergyForm ioto:AcousticEnergy .
+
+ioto:noiseSensor01 a sosa1:Sensor ;
+    rdfs:label "noiseSensor01"^^xsd:string ;
+    ioto:assessesMetric ioto:AcousticComfort_noiseSensor01 ;
+    ioto:usesDataFormat ioto:JSON ;
+    sosa1:observes ioto:noise .
+
+ioto:smoke a sosa1:ObservableProperty ;
+    rdfs:label "smoke"^^xsd:string ;
+    ioto:associatedEnergyForm seas:ChemicalEnergy .
+
+ioto:smokeSensor01 a sosa1:Sensor ;
+    rdfs:label "smokeSensor01"^^xsd:string ;
+    ioto:assessesMetric ioto:SafetyRiskIndex_smokeSensor01 ;
+    ioto:usesDataFormat ioto:XML ;
+    sosa1:observes ioto:smoke .
+
+ioto:CoAP a ioto:CommunicationProtocol ;
+    rdfs:label "CoAP"^^xsd:string .
+
+ioto:LightingEfficiency_illuminationSensor01 a ioto:SustainabilityMetric ;
+    rdfs:label "LightingEfficiency"^^xsd:string .
+
+ioto:OneM2M a ioto:IoTStandard ;
+    rdfs:label "OneM2M"^^xsd:string .
+
+ioto:ThreatResponse_tempSensor01_1 a ioto:ThreatResponse ;
+    rdfs:label "Threat response for anomaly detected by tempSensor01"^^xsd:string .
+
+ds4iot:LightSensor_RBAC a ds4iot:RBAC ;
+    rdfs:label "LightSensor RBAC"^^xsd:string .
+
+ds4iot:NoiseDetector_RBAC a ds4iot:RBAC ;
+    rdfs:label "NoiseDetector RBAC"^^xsd:string .
+
+ds4iot:SmartAirQuality_RBAC a ds4iot:RBAC ;
+    rdfs:label "SmartAirQuality RBAC"^^xsd:string .
+
+ds4iot:SmartThermostat_RBAC a ds4iot:RBAC ;
+    rdfs:label "SmartThermostat RBAC"^^xsd:string .
+
+ds4iot:SmokeDetector_RBAC a ds4iot:RBAC ;
+    rdfs:label "SmokeDetector RBAC"^^xsd:string .
+
+ioto:JSON a ioto:DataFormat .
+
+ioto:tempSensor01 a sosa1:Sensor ;
+    rdfs:label "tempSensor01"^^xsd:string ;
+    ioto:assessesMetric ioto:EnergyEfficiency_tempSensor01 ;
+    ioto:usesDataFormat ioto:JSON ;
+    sosa1:observes ioto:temperature .
+
+ioto:exhibition1 a ioto:Room ;
+    rdfs:label "exhibition1"^^xsd:string .
+
+ioto:temperature a sosa1:ObservableProperty ;
+    rdfs:label "temperature"^^xsd:string ;
+    ioto:associatedEnergyForm seas:ThermalEnergy ;
+    seas:evaluation ioto:Evaluation_temperature .
+

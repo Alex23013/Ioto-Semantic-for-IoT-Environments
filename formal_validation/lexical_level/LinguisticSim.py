@@ -141,39 +141,3 @@ print ("LinguisticSimm[ssn, ds4iot]: "+str(sim5))
 
 sim6 = alfa* doc_sim_colpri_ds4iot + beta*fin_sim_colpri_ds4iot
 print ("LinguisticSimm[colpri, ds4iot]: "+str(sim6))
-
-'''
-#validate proccess
-entities_from_seas  = getTotalEntities("../iot_ontologies/seas.ttl")
-print("Sosa total entities: ")
-print(len(onto)) 
-
-resFR = getTotalEntities("../iot_ontologies/ssn.ttl")
-print("SSN total entities: ")
-print(len(resFR)) 
-
-resKNOW = getTotalEntities("../input_ontologies/knowrob.owl")
-print("KNOWROB total entities: ")
-print(len(resKNOW))
-
-
-finSimm1 = calcStringSim(resFR, onto, ro_value )
-print("StringSimm [FR2013, ontoSLAM]:", finSimm1)
-
-
-finSimm2 = calcStringSim(onto, resKNOW, ro_value  )
-print("StringSimm [ontoSLAM, knowrob] :", finSimm2)
-finSimm3 = calcStringSim(resFR, resKNOW, ro_value  )
-print("StringSimm [FR2013, knowrob] :", finSimm3)
-
-sim1 = alfa* DocSim1 + beta*finSimm1
-print ("\nLinguisticSimm[FR2013, ontoSLAM]: "+str(sim1))
-
-
-sim2 = alfa* DocSim2 + beta*finSimm2
-print ("LinguisticSimm[ontoSLAM, knowrob]: "+str(sim2))
-
-sim3 = alfa* DocSim3 + beta*finSimm3
-print ("LinguisticSimm[FR2013, knowrob] : "+str(sim3))
-'''
-
